@@ -1,0 +1,383 @@
+//
+//  GameState.swift
+//  Letter Drop
+//
+//  Single source of truth shared between SwiftUI screens and SpriteKit scene.
+//  Timer model: per-block countdown with time-banking on early submit.
+//
+
+import Foundation
+import Combine
+
+enum GamePhase: Equatable {
+    case loading      // fetching daily puzzle at launch
+    case menu
+    case playing
+    case results
+    case fetchError   // network/validation failure — game cannot start
+}
+
+struct FoundWord {
+    let word: String
+    let score: Int
+    let waveIndex: Int  // 0-5
+}
+
+final class GameState: ObservableObject {
+
+    // MARK: - Phase
+    @Published var phase: GamePhase = .menu
+
+    // MARK: - Round state
+    @Published var score: Int = 0
+    @Published var foundWords: [FoundWord] = []
+
+    /// Updated by GameScene as the player traces a path — drives the HUD preview.
+    @Published var currentSelection: String = ""
+
+    // MARK: - In-game UI helpers
+
+    /// Short "WAVE N" banner shown when a new block starts. Cleared after ~1.2 s.
+    @Published var waveBanner: String? = nil
+    /// Y of the active block's top edge in UIKit coords (origin top-left).
+    /// Set by GameScene; used to anchor the word-preview overlay.
+    @Published var blockTopUIKitY: CGFloat = 0
+
+    // MARK: - Per-block timer
+
+    /// The phase currently draining: bank first, then block time, then none.
+    enum TimerPhase: Equatable {
+        case banked   // burning accumulated bank
+        case block    // burning this block's allocation
+        case none
+    }
+    @Published var timerPhase: TimerPhase = .none
+
+    /// Remaining seconds on the current block's own allocation.
+    @Published var currentBlockTimeRemaining: Double = 0
+
+    /// Pooled bonus seconds earned by submitting words early.
+    /// Drains first (in gold) before each block's own allocation starts.
+    @Published var bankedTime: Double = 0
+
+    /// True when the block clock should not tick (slow-mo is consuming its own budget).
+    var isSlowMoActive: Bool = false {
+        didSet { objectWillChange.send() }
+    }
+
+    /// True on the frame the block allocation hits zero (GameScene detects and acts on this).
+    var isBlockTimedOut: Bool {
+        timerPhase == .block && currentBlockTimeRemaining <= 0
+    }
+
+    // MARK: - Per-block timer API (called by GameScene)
+
+    /// Call when a block enters play. Bank drains first if any remains.
+    func startBlockTimer(blockIndex: Int) {
+        let base = Constants.Game.blockTimeLimits[safe: blockIndex] ?? 0
+        currentBlockTimeRemaining = base
+        timerPhase = bankedTime > 0 ? .banked : .block
+    }
+
+    /// Tick the block clock by `dt` real seconds. Slow-mo pauses the clock entirely.
+    func tickBlockTimer(dt: Double) {
+        guard timerPhase != .none, !isSlowMoActive else { return }
+
+        if timerPhase == .banked {
+            bankedTime = max(0, bankedTime - dt)
+            if bankedTime <= 0 { timerPhase = .block }
+        } else {
+            currentBlockTimeRemaining = max(0, currentBlockTimeRemaining - dt)
+        }
+    }
+
+    /// Called on a successful early submit. Distributes remaining time equally
+    /// across blocks that haven't been played yet.
+    func bankRemainingTime(blockIndex: Int) {
+        let remaining = currentBlockTimeRemaining
+        let remainingBlocks = Constants.Game.wavesPerRound - blockIndex - 1
+        if remainingBlocks > 0 && remaining > 0 {
+            bankedTime += remaining / Double(remainingBlocks)
+        }
+        currentBlockTimeRemaining = 0
+        timerPhase = .none
+    }
+
+    func stopBlockTimer() {
+        timerPhase = .none
+    }
+
+    // MARK: - Daily challenge
+    @Published var hasPlayedToday: Bool = false
+    /// The validated puzzle loaded via URLSession — nil only while loading.
+    private(set) var dailyChallenge: DailyChallenge?
+    /// Human-readable reason shown on the fetch-error screen.
+    @Published private(set) var fetchErrorMessage: String = ""
+
+    // MARK: - Countdown (#1)
+    /// 3 → 2 → 1 → 0 (GO) → nil.  nil means game is running.
+    @Published var countdownValue: Int? = nil
+
+    private var countdownGeneration = 0
+
+    func startCountdown() {
+        countdownGeneration += 1
+        let gen = countdownGeneration
+        countdownValue = 3
+        scheduleCountdown(value: 3, generation: gen)
+    }
+
+    private func scheduleCountdown(value: Int, generation: Int) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            guard let self, self.countdownGeneration == generation else { return }
+            let next = value - 1
+            self.countdownValue = next
+            if next > 0 {
+                self.scheduleCountdown(value: next, generation: generation)
+            } else {
+                // Show GO (0) for 0.6 s then clear — GameScene starts block 0 timer
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                    guard let self, self.countdownGeneration == generation else { return }
+                    self.countdownValue = nil
+                }
+            }
+        }
+    }
+
+    // MARK: - Best word flash (#3)
+    struct BestWordFlash: Equatable {
+        let word: String
+        let score: Int
+    }
+    @Published var bestWordFlash: BestWordFlash? = nil
+
+    // MARK: - Miss feedback (#7)
+    @Published var showMissFeedback = false
+
+    // MARK: - Wave optimal words (#8, #9)
+    struct WaveOptimal: Equatable {
+        let word: String
+        let score: Int
+    }
+    @Published var waveOptimalWords: [WaveOptimal?] = []
+    @Published var theoreticalMaxScore: Int = 0
+
+    private func computeWaveOptimal() {
+        guard let waves = dailyChallenge?.waves else { return }
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            var optima: [WaveOptimal?] = []
+            for wave in waves {
+                if let best = WaveGridSolver.bestWord(in: wave.flat) {
+                    optima.append(WaveOptimal(word: best.word, score: best.score))
+                } else {
+                    optima.append(nil)
+                }
+            }
+            // Theoretical max: best word per wave × multiplier if perfect streak
+            // Multipliers: wave 0→1×, 1→1×, 2→2×, 3→4×, 4→8×, 5→16×
+            let maxScore = optima.enumerated().reduce(0) { total, pair in
+                let mult = max(1, 1 << max(0, pair.offset - 1))
+                return total + (pair.element?.score ?? 0) * mult
+            }
+            DispatchQueue.main.async { [weak self] in
+                self?.waveOptimalWords    = optima
+                self?.theoreticalMaxScore = maxScore
+            }
+        }
+    }
+
+    // MARK: - Slow motion
+
+    /// Remaining slow-motion budget in seconds (15 s per round).
+    @Published var slowMoAllowance: Double = 15.0
+
+    func activateSlowMo()             { isSlowMoActive = true }
+    func deactivateSlowMo()           { isSlowMoActive = false }
+    func depleteSlowMo(by dt: Double) { slowMoAllowance = max(0, slowMoAllowance - dt) }
+
+    // MARK: - Cascading multiplier
+    /// Number of consecutive waves solved without missing one.
+    @Published var consecutiveSolves: Int = 0
+
+    /// Non-nil for ~1 s after the multiplier jumps up; value is the new multiplier.
+    @Published var comboBoostFlash: Int? = nil
+
+    /// Score multiplier applied to the next word submission.
+    /// Streak 0 or 1 → 1×, streak 2 → 2×, streak 3 → 4×, 4 → 8×, 5 → 16×, 6 → 32×
+    var currentMultiplier: Int { max(1, 1 << max(0, consecutiveSolves - 1)) }
+
+    // MARK: - Persistent stats (UserDefaults-backed)
+    @Published var bestScore: Int = UserDefaults.standard.integer(forKey: "bestScore") {
+        didSet { UserDefaults.standard.set(bestScore, forKey: "bestScore") }
+    }
+    @Published var gamesPlayed: Int = UserDefaults.standard.integer(forKey: "gamesPlayed") {
+        didSet { UserDefaults.standard.set(gamesPlayed, forKey: "gamesPlayed") }
+    }
+    @Published var totalScore: Int = UserDefaults.standard.integer(forKey: "totalScore") {
+        didSet { UserDefaults.standard.set(totalScore, forKey: "totalScore") }
+    }
+    @Published var totalWordsCompleted: Int = UserDefaults.standard.integer(forKey: "totalWordsCompleted") {
+        didSet { UserDefaults.standard.set(totalWordsCompleted, forKey: "totalWordsCompleted") }
+    }
+    @Published var perfectRounds: Int = UserDefaults.standard.integer(forKey: "perfectRounds") {
+        didSet { UserDefaults.standard.set(perfectRounds, forKey: "perfectRounds") }
+    }
+    @Published var bestWordScore: Int = UserDefaults.standard.integer(forKey: "bestWordScore") {
+        didSet { UserDefaults.standard.set(bestWordScore, forKey: "bestWordScore") }
+    }
+    @Published var bestWord: String = UserDefaults.standard.string(forKey: "bestWord") ?? "" {
+        didSet { UserDefaults.standard.set(bestWord, forKey: "bestWord") }
+    }
+
+    // MARK: - Derived
+    var averageScore: Int {
+        guard gamesPlayed > 0 else { return 0 }
+        return totalScore / gamesPlayed
+    }
+
+    var shortestFoundWord: String? {
+        foundWords.min(by: { $0.word.count < $1.word.count })?.word
+    }
+
+    var longestFoundWord: String? {
+        foundWords.max(by: { $0.word.count < $1.word.count })?.word
+    }
+
+    // MARK: - Private
+    private static let lastPlayedKey = "lastPlayedDate"
+
+    // MARK: - Init
+    init() {
+        checkPlayedToday()
+        fetchDailyChallenge()
+    }
+
+    // MARK: - Puzzle fetch
+
+    /// Called once at init and again when the user taps Retry on the error screen.
+    func retryPuzzleFetch() {
+        fetchDailyChallenge()
+    }
+
+    private func fetchDailyChallenge() {
+        phase = .loading
+
+        DailyChallengeManager.shared.load { [weak self] result in
+            guard let self else { return }
+
+            switch result {
+            case .success(let challenge):
+                self.dailyChallenge = challenge
+                self.phase = .menu
+
+            case .failure(let error):
+                print("Failed to load challenge:", error)
+                self.phase = .menu
+            }
+        }
+    }
+
+    // MARK: - Round actions
+
+    func startRound() {
+        score               = 0
+        foundWords          = []
+        currentSelection    = ""
+        consecutiveSolves   = 0
+        slowMoAllowance     = 15.0
+        isSlowMoActive      = false
+        waveOptimalWords    = []
+        theoreticalMaxScore = 0
+        bestWordFlash       = nil
+        showMissFeedback    = false
+        // Per-block timer state
+        currentBlockTimeRemaining = 0
+        bankedTime          = 0
+        timerPhase          = .none
+        waveBanner          = nil
+        blockTopUIKitY      = 0
+        comboBoostFlash     = nil
+        phase = .playing
+        markPlayedToday()
+        startCountdown()    // GameScene starts block 0 timer after GO
+    }
+
+    func endRound() {
+        stopBlockTimer()
+        countdownGeneration += 1    // cancel any pending countdown
+        countdownValue = nil
+        if score > bestScore { bestScore = score }
+        totalScore += score
+        gamesPlayed += 1
+        if foundWords.count == Constants.Game.wavesPerRound { perfectRounds += 1 }
+        phase = .results
+        computeWaveOptimal()        // async — populates results screen data
+    }
+
+    func returnToMenu() {
+        stopBlockTimer()
+        countdownGeneration += 1    // cancel any pending countdown
+        countdownValue = nil
+        currentSelection = ""
+        phase = .menu
+    }
+
+    func submitWord(word: String, score wordScore: Int, waveIndex: Int) {
+        foundWords.append(FoundWord(word: word.uppercased(), score: wordScore, waveIndex: waveIndex))
+        score += wordScore
+        totalWordsCompleted += 1
+        let oldMultiplier = currentMultiplier
+        consecutiveSolves += 1          // extend streak
+        let newMultiplier = currentMultiplier
+        if newMultiplier > oldMultiplier {
+            comboBoostFlash = newMultiplier
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                self?.comboBoostFlash = nil
+            }
+        }
+        if wordScore > bestWordScore {
+            bestWordScore = wordScore
+            bestWord = word.uppercased()
+        }
+    }
+
+    /// Called by GameScene when a block exits without being solved.
+    func resetStreak() {
+        consecutiveSolves = 0
+    }
+
+    func resetStats() {
+        bestScore           = 0
+        gamesPlayed         = 0
+        totalScore          = 0
+        totalWordsCompleted = 0
+        perfectRounds       = 0
+        bestWordScore       = 0
+        bestWord            = ""
+    }
+
+    // MARK: - Daily play tracking
+
+    func checkPlayedToday() {
+        hasPlayedToday = UserDefaults.standard.string(forKey: Self.lastPlayedKey) == todayString()
+    }
+
+    private func markPlayedToday() {
+        UserDefaults.standard.set(todayString(), forKey: Self.lastPlayedKey)
+        hasPlayedToday = true
+    }
+
+    private func todayString() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: Date())
+    }
+}
+
+// MARK: - Safe subscript used by startBlockTimer
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
+    }
+}
