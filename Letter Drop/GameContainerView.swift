@@ -52,10 +52,13 @@ struct GamePlayView: View {
                 .allowsHitTesting(false)
             }
 
-            // Slow-motion centre overlay
+            // CRAWLING banner — slides in when slow-mo is active, out on release
             if gameState.isSlowMoActive {
-                SlowMoOverlay(allowance: gameState.slowMoAllowance)
-                    .transition(.scale(scale: 0.85).combined(with: .opacity))
+                CrawlingBannerOverlay()
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .top).combined(with: .opacity),
+                        removal:   .opacity
+                    ))
                     .allowsHitTesting(false)
             }
 
@@ -78,7 +81,7 @@ struct GamePlayView: View {
         .animation(.easeOut(duration: 0.25),   value: gameState.countdownValue)
         .animation(.spring(response: 0.28, dampingFraction: 0.75),
                    value: gameState.currentSelection.isEmpty)
-        .animation(.spring(response: 0.30, dampingFraction: 0.70),
+        .animation(.easeOut(duration: 0.55),
                    value: gameState.isSlowMoActive)
         .animation(.spring(response: 0.28, dampingFraction: 0.70),
                    value: gameState.waveBanner != nil)
@@ -201,38 +204,33 @@ private struct MissOverlay: View {
     }
 }
 
-// MARK: - Slow-motion centre overlay
+// MARK: - CRAWLING banner overlay (shown while slow-mo is active)
 
-private struct SlowMoOverlay: View {
-    let allowance: Double
-
-    @State private var breathe = false
-    private var displaySeconds: Int { max(0, Int(ceil(allowance))) }
+private struct CrawlingBannerOverlay: View {
+    @State private var scale:   CGFloat = 0.80
+    @State private var opacity: Double  = 0
 
     var body: some View {
-        VStack(spacing: 4) {
-            Text("🐢")
-                .font(.system(size: 30))
-            Text("\(displaySeconds)s")
-                .font(Constants.Fonts.rounded(58, weight: .bold))
-                .foregroundStyle(Constants.Colors.gold)
-                .monospacedDigit()
-                .contentTransition(.numericText(countsDown: true))
-            Text("SLOW")
-                .font(Constants.Fonts.rounded(10, weight: .semibold))
-                .foregroundStyle(Constants.Colors.gold.opacity(0.55))
-                .tracking(3)
+        VStack {
+            Spacer().frame(height: 160)
+            Text("CRAWLING")
+                .font(Constants.Fonts.rounded(22, weight: .bold))
+                .foregroundStyle(Constants.Colors.tile)
+                .tracking(6)
+                .padding(.horizontal, 28)
+                .padding(.vertical, 11)
+                .background(Capsule().fill(Constants.Colors.trayBackground.opacity(0.90)))
+                .scaleEffect(scale)
+                .opacity(opacity)
+                .onAppear {
+                    // Slow, deliberate ease-in to match the mode's pace
+                    withAnimation(.easeOut(duration: 0.55)) {
+                        scale   = 1.0
+                        opacity = 1.0
+                    }
+                }
+            Spacer()
         }
-        .padding(.horizontal, 36)
-        .padding(.vertical, 22)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Constants.Colors.trayBackground.opacity(0.94))
-                .shadow(color: .black.opacity(0.30), radius: 16, x: 0, y: 6)
-        )
-        .scaleEffect(breathe ? 1.025 : 1.0)
-        .animation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true), value: breathe)
-        .onAppear { breathe = true }
     }
 }
 
@@ -342,19 +340,17 @@ struct GameHUDView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 56)
 
-                // Row 2: Wave dots (centre) · Multiplier badge (trailing)
-                HStack(spacing: 0) {
-                    Spacer()
-                        .frame(maxWidth: .infinity)
-
+                // Row 2: Wave dots always centred; badge floats to trailing edge
+                ZStack {
                     WaveDotsView(
                         total:         Constants.Game.wavesPerRound,
                         solvedIndices: Set(gameState.foundWords.map(\.waveIndex))
                     )
-
-                    MultiplierBadge(multiplier: gameState.currentMultiplier)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .padding(.trailing, 20)
+                    HStack {
+                        Spacer()
+                        MultiplierBadge(multiplier: gameState.currentMultiplier)
+                            .padding(.trailing, 20)
+                    }
                 }
                 .padding(.top, 8)
                 .padding(.bottom, 14)
@@ -379,10 +375,20 @@ private struct SlowMoIndicator: View {
     private var isExhausted: Bool { allowance <= 0 }
     private var displaySeconds: Int { max(0, Int(allowance.rounded(.up))) }
 
+    @State private var breathe = false
+
     var body: some View {
         HStack(spacing: 4) {
-            Text("🐢")
-                .font(.system(size: 15))
+            Image(systemName: "tortoise.fill")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(
+                    isActive    ? Constants.Colors.gold :
+                    isExhausted ? Constants.Colors.tile.opacity(0.25) :
+                                  Constants.Colors.tile
+                )
+                .scaleEffect(isActive ? (breathe ? 1.55 : 1.40) : 1.0)
+                .animation(.spring(response: 0.40, dampingFraction: 0.60), value: isActive)
+
             Text("\(displaySeconds)s")
                 .font(Constants.Fonts.rounded(17, weight: .bold))
                 .monospacedDigit()
@@ -394,8 +400,18 @@ private struct SlowMoIndicator: View {
                 )
         }
         .opacity(isExhausted ? 0.45 : 1.0)
-        .animation(.easeInOut(duration: 0.2), value: isActive)
         .animation(.easeInOut(duration: 0.2), value: isExhausted)
+        .onChange(of: isActive) { active in
+            if active {
+                withAnimation(.easeInOut(duration: 0.65).repeatForever(autoreverses: true)) {
+                    breathe = true
+                }
+            } else {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                    breathe = false
+                }
+            }
+        }
     }
 }
 
