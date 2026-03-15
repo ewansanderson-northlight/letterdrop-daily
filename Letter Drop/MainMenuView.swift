@@ -13,6 +13,7 @@ struct MainMenuView: View {
     @State private var appeared           = false
     @State private var showHowToPlay      = false
     @State private var showStats          = false
+    @State private var showAbout          = false
     @State private var buttonsHighlighted = false
 
     var body: some View {
@@ -31,6 +32,13 @@ struct MainMenuView: View {
                 bottomSection
             }
             .padding(.horizontal, 28)
+
+            // About overlay
+            if showAbout {
+                UnseriousAboutOverlay(isPresented: $showAbout)
+                    .transition(.opacity)
+                    .zIndex(100)
+            }
         }
         .onAppear {
             appeared = false
@@ -152,12 +160,15 @@ struct MainMenuView: View {
             .opacity(appeared ? 1 : 0)
             .animation(.easeOut(duration: 0.3).delay(0.6), value: appeared)
 
-            Text("by unserious.games")
-                .font(Constants.Fonts.rounded(13, weight: .medium))
-                .foregroundStyle(Constants.Colors.tile.opacity(0.18))
-                .padding(.bottom, 36)
-                .opacity(appeared ? 1 : 0)
-                .animation(.easeOut(duration: 0.3).delay(0.70), value: appeared)
+            Button { showAbout = true } label: {
+                Text("by unserious.games")
+                    .font(Constants.Fonts.rounded(13, weight: .medium))
+                    .foregroundStyle(Constants.Colors.tile.opacity(0.18))
+            }
+            .buttonStyle(.plain)
+            .padding(.bottom, 36)
+            .opacity(appeared ? 1 : 0)
+            .animation(.easeOut(duration: 0.3).delay(0.70), value: appeared)
         }
     }
 }
@@ -338,6 +349,99 @@ private struct DriftingGridSilhouette: View {
             ) {
                 y = endY
             }
+        }
+    }
+}
+
+// MARK: - Unserious Games about overlay
+
+private struct UnseriousAboutOverlay: View {
+    @Binding var isPresented: Bool
+
+    @State private var cardAppeared = false
+    @State private var dotPhase     = 0
+
+    private let dotTimer = Timer.publish(every: 0.48, on: .main, in: .common).autoconnect()
+
+    private var dotsString: String {
+        String(repeating: ".", count: dotPhase + 1)
+    }
+
+    var body: some View {
+        ZStack {
+            // Dimmed backdrop
+            Color.black.opacity(0.60)
+                .ignoresSafeArea()
+                .onTapGesture { dismiss() }
+
+            // Card
+            VStack(spacing: 0) {
+                // Close button row
+                HStack {
+                    Spacer()
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(Constants.Colors.tileText.opacity(0.35))
+                            .padding(9)
+                            .background(Constants.Colors.tileText.opacity(0.08), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.trailing, 16)
+                .padding(.top, 16)
+
+                // Logo
+                Image("Unserious Games Logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 210)
+                    .padding(.top, 4)
+                    .padding(.bottom, 4)
+
+                // Tagline
+                Text("Human ideas, robot tools")
+                    .font(Constants.Fonts.rounded(15, weight: .semibold))
+                    .foregroundStyle(Constants.Colors.tileText.opacity(0.70))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 10)
+
+                // Animated "More coming soon..."
+                HStack(spacing: 0) {
+                    Text("More coming soon")
+                        .font(Constants.Fonts.rounded(13, weight: .regular))
+                        .foregroundStyle(Constants.Colors.tileText.opacity(0.38))
+                    Text(dotsString)
+                        .font(Constants.Fonts.rounded(13, weight: .regular))
+                        .foregroundStyle(Constants.Colors.tileText.opacity(0.38))
+                        .frame(minWidth: 18, alignment: .leading)
+                        .animation(.none, value: dotsString)
+                }
+                .padding(.bottom, 32)
+            }
+            .background(Constants.Colors.tile, in: RoundedRectangle(cornerRadius: 26))
+            .padding(.horizontal, 36)
+            .shadow(color: .black.opacity(0.25), radius: 24, x: 0, y: 8)
+            .scaleEffect(cardAppeared ? 1.0 : 0.72)
+            .opacity(cardAppeared ? 1.0 : 0)
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.44, dampingFraction: 0.60)) {
+                cardAppeared = true
+            }
+        }
+        .onReceive(dotTimer) { _ in
+            dotPhase = (dotPhase + 1) % 3
+        }
+    }
+
+    private func dismiss() {
+        withAnimation(.easeOut(duration: 0.16)) {
+            cardAppeared = false
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
+            isPresented = false
         }
     }
 }
