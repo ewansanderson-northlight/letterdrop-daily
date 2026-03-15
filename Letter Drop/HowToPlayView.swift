@@ -110,65 +110,66 @@ private struct SectionHeader: View {
 
 // MARK: - Gameplay demo card
 
+/// Animated 3×3 grid showing a swipe path S→W→I→P→E spelling "SWIPE".
 private struct GameplayDemoCard: View {
 
-    // Falling tile sequence — spells "WORD" with the pre-filled "W"
-    private let sequence = ["O", "R", "D"]
+    // 3×3 letter grid
+    private let grid: [[String]] = [
+        ["S", "W", "X"],
+        ["Y", "I", "P"],
+        ["Z", "Q", "E"]
+    ]
+    // (row, col) steps forming the swipe path
+    private let pathSteps: [(Int, Int)] = [(0,0), (0,1), (1,1), (1,2), (2,2)]
 
-    @State private var trayLetters: [String] = ["W"]
-    @State private var sequenceIndex  = 0
-    @State private var tileVisible    = true   // false while "collecting"
+    private let tileSize: CGFloat = 48
+    private let tileGap:  CGFloat = 7
 
-    // Independent bobbing offsets for each tile
-    @State private var bob1: CGFloat = 0
-    @State private var bob2: CGFloat = 3
-    @State private var bob3: CGFloat = -3
-
-    // Tap ring pulsing
-    @State private var ringScale:   CGFloat = 0.85
-    @State private var ringOpacity: CGFloat = 0.75
-
-    private var currentLetter: String { sequence[sequenceIndex % sequence.count] }
+    @State private var revealedCount = 0   // how many path tiles are highlighted
+    @State private var cleared       = false  // brief flash-clear on submit
 
     var body: some View {
         VStack(spacing: 0) {
-            // ── Falling tiles area ──────────────────────────────────────
+            // ── Grid + swipe trail ──────────────────────────────────────
             GeometryReader { geo in
-                let w = geo.size.width
-                let h = geo.size.height
-
-                // Static tile B
-                DemoTileView(letter: "T")
-                    .position(x: w * 0.58, y: h * 0.38 + bob2)
-
-                // Static tile C
-                DemoTileView(letter: "A")
-                    .position(x: w * 0.83, y: h * 0.55 + bob3)
-
-                // Featured tile — tap target
                 ZStack {
-                    // Pulsing ring
-                    Circle()
-                        .strokeBorder(Constants.Colors.success, lineWidth: 2)
-                        .frame(width: 54, height: 54)
-                        .scaleEffect(ringScale)
-                        .opacity(ringOpacity * (tileVisible ? 1 : 0))
+                    // Trail line connecting highlighted tiles
+                    SwipeTrailShape(
+                        steps:    Array(pathSteps.prefix(revealedCount)),
+                        tileSize: tileSize,
+                        gap:      tileGap
+                    )
+                    .stroke(
+                        Constants.Colors.gold.opacity(cleared ? 0 : 0.65),
+                        style: StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round)
+                    )
+                    .animation(.easeOut(duration: 0.12), value: revealedCount)
+                    .animation(.easeOut(duration: 0.15), value: cleared)
 
-                    // The tile itself
-                    DemoTileView(letter: currentLetter)
-                        .scaleEffect(tileVisible ? 1.0 : 1.3)
-                        .opacity(tileVisible ? 1.0 : 0.0)
+                    // All 9 tiles
+                    ForEach(0..<9, id: \.self) { idx in
+                        let row    = idx / 3
+                        let col    = idx % 3
+                        let posIdx = pathSteps.firstIndex(where: { $0.0 == row && $0.1 == col })
+                        let isLit  = (posIdx.map { $0 < revealedCount } ?? false) && !cleared
+                        DemoTileView(letter: grid[row][col], highlighted: isLit)
+                            .position(tileCenter(row: row, col: col, in: geo.size))
+                            .animation(.spring(response: 0.22, dampingFraction: 0.65), value: isLit)
+                    }
+
+                    // "Swipe!" hint — fades out once the swipe begins
+                    VStack {
+                        Spacer()
+                        Text("Swipe!")
+                            .font(Constants.Fonts.rounded(11, weight: .semibold))
+                            .foregroundStyle(Constants.Colors.success.opacity(0.75))
+                            .opacity(revealedCount == 0 ? 1 : 0)
+                            .animation(.easeOut(duration: 0.15), value: revealedCount == 0)
+                            .padding(.bottom, 8)
+                    }
                 }
-                .position(x: w * 0.24, y: h * 0.42 + bob1)
-
-                // "Tap!" hint
-                Text("Tap!")
-                    .font(Constants.Fonts.rounded(11, weight: .semibold))
-                    .foregroundStyle(Constants.Colors.success.opacity(0.75))
-                    .position(x: w * 0.24, y: h * 0.42 + bob1 + 36)
-                    .opacity(tileVisible ? 1 : 0)
             }
-            .frame(height: 130)
+            .frame(height: 190)
             .background(
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Constants.Colors.background)
@@ -178,82 +179,79 @@ private struct GameplayDemoCard: View {
                     )
             )
 
-            // ── Mini tray ───────────────────────────────────────────────
-            DemoTrayView(letters: trayLetters, totalSlots: 6)
-                .padding(.top, 10)
+            // ── Mini tray — shows word building as swipe progresses ─────
+            DemoTrayView(
+                letters:    pathSteps.prefix(cleared ? 0 : revealedCount).map { grid[$0.0][$0.1] },
+                totalSlots: 6
+            )
+            .padding(.top, 10)
         }
-        .task {
-            startBobbing()
-            startRingPulse()
-            await runCollectionLoop()
-        }
+        .task { await runLoop() }
     }
 
-    // MARK: Bobbing
+    // MARK: Helpers
 
-    private func startBobbing() {
-        withAnimation(.easeInOut(duration: 1.7).repeatForever(autoreverses: true)) {
-            bob1 = 9
-        }
-        withAnimation(.easeInOut(duration: 2.3).repeatForever(autoreverses: true)) {
-            bob2 = -11
-        }
-        withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-            bob3 = 7
-        }
+    private func tileCenter(row: Int, col: Int, in size: CGSize) -> CGPoint {
+        let totalW = CGFloat(3) * tileSize + CGFloat(2) * tileGap
+        let totalH = CGFloat(3) * tileSize + CGFloat(2) * tileGap
+        let ox = (size.width  - totalW) / 2 + tileSize / 2
+        let oy = (size.height - totalH) / 2 + tileSize / 2
+        return CGPoint(
+            x: ox + CGFloat(col) * (tileSize + tileGap),
+            y: oy + CGFloat(row) * (tileSize + tileGap)
+        )
     }
 
-    // MARK: Tap ring pulse
+    // MARK: Animation loop
 
-    private func startRingPulse() {
-        withAnimation(.easeOut(duration: 1.1).repeatForever(autoreverses: false)) {
-            ringScale   = 1.85
-            ringOpacity = 0
-        }
-    }
-
-    // MARK: Async collection loop
-
-    private func runCollectionLoop() async {
+    private func runLoop() async {
         while !Task.isCancelled {
-            // Idle — let the ring pulse for a beat
-            try? await Task.sleep(for: .seconds(2.2))
-            guard !Task.isCancelled else { break }
-
-            // Collect: tile scales up and disappears
-            withAnimation(.spring(response: 0.2, dampingFraction: 0.65)) {
-                tileVisible = false
-            }
-            try? await Task.sleep(for: .seconds(0.3))
-            guard !Task.isCancelled else { break }
-
-            // Tray gains the letter
-            let letter = sequence[sequenceIndex % sequence.count]
-            withAnimation(.spring(response: 0.38, dampingFraction: 0.62)) {
-                trayLetters.append(letter)
-            }
-            sequenceIndex += 1
-
-            // Tile respawns
-            try? await Task.sleep(for: .seconds(0.25))
-            withAnimation(.spring(response: 0.3)) {
-                tileVisible = true
-            }
-
-            // Pause before next collect
+            // Pause before swipe begins
             try? await Task.sleep(for: .seconds(1.0))
-            guard !Task.isCancelled else { break }
-
-            // Tray full → clear and restart
-            if trayLetters.count >= 4 {
-                try? await Task.sleep(for: .seconds(1.2))
-                withAnimation(.spring(response: 0.4)) {
-                    trayLetters  = ["W"]
-                    sequenceIndex = 0
+            // Reveal tiles one by one
+            for count in 1...pathSteps.count {
+                guard !Task.isCancelled else { return }
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                    revealedCount = count
                 }
-                try? await Task.sleep(for: .seconds(0.6))
+                try? await Task.sleep(for: .seconds(0.32))
+            }
+            // Hold full word briefly
+            try? await Task.sleep(for: .seconds(0.85))
+            // Flash-clear (simulate submit)
+            withAnimation(.easeOut(duration: 0.15)) { cleared = true }
+            try? await Task.sleep(for: .seconds(0.45))
+            // Reset for next loop
+            withAnimation(.spring(response: 0.3)) {
+                revealedCount = 0
+                cleared       = false
             }
         }
+    }
+}
+
+// MARK: - Swipe trail shape
+
+/// Draws a polyline through the centres of the given grid steps.
+private struct SwipeTrailShape: Shape {
+    let steps:    [(Int, Int)]
+    let tileSize: CGFloat
+    let gap:      CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        guard steps.count > 1 else { return Path() }
+        let totalW = CGFloat(3) * tileSize + CGFloat(2) * gap
+        let totalH = CGFloat(3) * tileSize + CGFloat(2) * gap
+        let ox = (rect.width  - totalW) / 2 + tileSize / 2
+        let oy = (rect.height - totalH) / 2 + tileSize / 2
+        func pt(_ s: (Int, Int)) -> CGPoint {
+            CGPoint(x: ox + CGFloat(s.1) * (tileSize + gap),
+                    y: oy + CGFloat(s.0) * (tileSize + gap))
+        }
+        var p = Path()
+        p.move(to: pt(steps[0]))
+        steps.dropFirst().forEach { p.addLine(to: pt($0)) }
+        return p
     }
 }
 
@@ -261,11 +259,12 @@ private struct GameplayDemoCard: View {
 
 private struct DemoTileView: View {
     let letter: String
+    var highlighted: Bool = false
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             RoundedRectangle(cornerRadius: 9)
-                .fill(Constants.Colors.tile)
+                .fill(highlighted ? Constants.Colors.gold : Constants.Colors.tile)
                 .shadow(color: Constants.Colors.tileShadow.opacity(0.35), radius: 3, x: 1, y: 2)
 
             Text(letter)
@@ -280,6 +279,7 @@ private struct DemoTileView: View {
                 .padding(.bottom, 2)
         }
         .frame(width: 42, height: 42)
+        .scaleEffect(highlighted ? 1.07 : 1.0)
     }
 }
 
