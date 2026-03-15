@@ -163,6 +163,12 @@ private struct ScoreCard: View {
                             .animation(.spring(response: 0.4), value: starCount)
                     }
                 }
+                Text("\(displayScore) / \(maxScore) max")
+                    .font(Constants.Fonts.rounded(13, weight: .regular))
+                    .foregroundStyle(Constants.Colors.tile.opacity(0.35))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .padding(.top, 2)
             } else {
                 Text("points")
                     .font(Constants.Fonts.rounded(17, weight: .regular))

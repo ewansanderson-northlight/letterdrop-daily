@@ -667,6 +667,7 @@ private final class WaveNode: SKNode {
                     x: CGFloat(col)          * tileStep + tileSize / 2,
                     y: CGFloat(rowFromBottom) * tileStep + tileSize / 2
                 )
+                tile.alpha = 0   // hidden until animateIn() is called after flyIn completes
                 addChild(tile)
                 tileGrid[row][col] = tile
             }
