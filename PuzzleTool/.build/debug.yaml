@@ -1,0 +1,92 @@
+client:
+  name: basic
+  file-system: device-agnostic
+tools: {}
+targets:
+  "PackageStructure": ["<PackageStructure>"]
+  "PuzzleTool-arm64-apple-macosx26.0-debug.exe": ["<PuzzleTool-arm64-apple-macosx26.0-debug.exe>"]
+  "PuzzleTool-arm64-apple-macosx26.0-debug.module": ["<PuzzleTool-arm64-apple-macosx26.0-debug.module>"]
+  "main": ["<PuzzleTool-arm64-apple-macosx26.0-debug.exe>","<PuzzleTool-arm64-apple-macosx26.0-debug.module>"]
+  "test": ["<PuzzleTool-arm64-apple-macosx26.0-debug.exe>","<PuzzleTool-arm64-apple-macosx26.0-debug.module>"]
+default: "main"
+nodes:
+  "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/":
+    is-directory-structure: true
+    content-exclusion-patterns: [".git",".build"]
+  "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool":
+    is-mutated: true
+commands:
+  "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool-entitlement.plist":
+    tool: write-auxiliary-file
+    inputs: ["<entitlement-plist>","<com.apple.security.get-task-allow>"]
+    outputs: ["/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool-entitlement.plist"]
+    description: "Write auxiliary file /Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool-entitlement.plist"
+
+  "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Generator.swift","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Models.swift","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Solver.swift","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Trie.swift","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Validator.swift","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/main.swift","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/DerivedSources/resource_bundle_accessor.swift"]
+    outputs: ["/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/sources"]
+    description: "Write auxiliary file /Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/sources"
+
+  "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.product/Objects.LinkFileList":
+    tool: write-auxiliary-file
+    inputs: ["<link-file-list>","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Generator.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Models.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Solver.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Trie.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Validator.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/main.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/resource_bundle_accessor.swift.o"]
+    outputs: ["/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.product/Objects.LinkFileList"]
+    description: "Write auxiliary file /Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.product/Objects.LinkFileList"
+
+  "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool_PuzzleTool.bundle/enable.txt":
+    tool: copy-tool
+    inputs: ["/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Resources/enable.txt"]
+    outputs: ["/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool_PuzzleTool.bundle/enable.txt"]
+    description: "Copying /Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Resources/enable.txt"
+
+  "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt":
+    tool: write-auxiliary-file
+    inputs: ["<swift-get-version>","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"]
+    outputs: ["/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"]
+    always-out-of-date: "true"
+    description: "Write auxiliary file /Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+
+  "<PuzzleTool-arm64-apple-macosx26.0-debug.exe>":
+    tool: phony
+    inputs: ["<PuzzleTool-arm64-apple-macosx26.0-debug.exe-CodeSigning>"]
+    outputs: ["<PuzzleTool-arm64-apple-macosx26.0-debug.exe>"]
+
+  "<PuzzleTool-arm64-apple-macosx26.0-debug.module>":
+    tool: phony
+    inputs: ["/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Generator.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Models.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Solver.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Trie.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Validator.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/main.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/resource_bundle_accessor.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/Modules/PuzzleTool.swiftmodule"]
+    outputs: ["<PuzzleTool-arm64-apple-macosx26.0-debug.module>"]
+
+  "C.PuzzleTool-arm64-apple-macosx26.0-debug.exe":
+    tool: shell
+    inputs: ["/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Generator.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Models.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Solver.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Trie.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Validator.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/main.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/resource_bundle_accessor.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.product/Objects.LinkFileList"]
+    outputs: ["/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool"]
+    description: "Linking ./.build/arm64-apple-macosx/debug/PuzzleTool"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-L","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug","-o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool","-module-name","PuzzleTool","-Xlinker","-no_warn_duplicate_libraries","-emit-executable","-Xlinker","-alias","-Xlinker","_PuzzleTool_main","-Xlinker","_main","-Xlinker","-rpath","-Xlinker","@loader_path","@/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.product/Objects.LinkFileList","-Xlinker","-rpath","-Xlinker","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-6.2/macosx","-target","arm64-apple-macosx12.0","-Xlinker","-add_ast_path","-Xlinker","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/Modules/PuzzleTool.swiftmodule","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g"]
+
+  "C.PuzzleTool-arm64-apple-macosx26.0-debug.exe-entitlements":
+    tool: shell
+    inputs: ["/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool-entitlement.plist"]
+    outputs: ["<PuzzleTool-arm64-apple-macosx26.0-debug.exe-CodeSigning>"]
+    description: "Applying debug entitlements to ./.build/arm64-apple-macosx/debug/PuzzleTool"
+    args: ["codesign","--force","--sign","-","--entitlements","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool-entitlement.plist","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool"]
+
+  "C.PuzzleTool-arm64-apple-macosx26.0-debug.module":
+    tool: shell
+    inputs: ["/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Generator.swift","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Models.swift","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Solver.swift","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Trie.swift","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Validator.swift","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/main.swift","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/DerivedSources/resource_bundle_accessor.swift","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt","<PuzzleTool-arm64-apple-macosx26.0-debug.module-resources>","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/sources"]
+    outputs: ["/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Generator.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Models.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Solver.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Trie.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Validator.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/main.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/resource_bundle_accessor.swift.o","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/Modules/PuzzleTool.swiftmodule"]
+    description: "Compiling Swift Module 'PuzzleTool' (7 sources)"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-module-name","PuzzleTool","-emit-dependencies","-emit-module","-emit-module-path","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/Modules/PuzzleTool.swiftmodule","-output-file-map","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/output-file-map.json","-incremental","-c","@/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/sources","-I","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/Modules","-target","arm64-apple-macosx12.0","-incremental","-enable-batch-mode","-serialize-diagnostics","-index-store-path","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/index/store","-Onone","-enable-testing","-j10","-DSWIFT_PACKAGE","-DDEBUG","-DSWIFT_MODULE_RESOURCE_BUNDLE_AVAILABLE","-module-cache-path","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/ModuleCache","-parseable-output","-Xfrontend","-entry-point-function-name","-Xfrontend","PuzzleTool_main","-color-diagnostics","-swift-version","5","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g","-Xcc","-isysroot","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-Xcc","-fPIC","-Xcc","-g","-package-name","puzzletool"]
+
+  "PackageStructure":
+    tool: package-structure-tool
+    inputs: ["/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Package.swift","/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Package.resolved"]
+    outputs: ["<PackageStructure>"]
+    description: "Planning build"
+    allow-missing-inputs: true
+
+  "PuzzleTool-arm64-apple-macosx26.0-debug.module-resources":
+    tool: phony
+    inputs: ["/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool_PuzzleTool.bundle/enable.txt"]
+    outputs: ["<PuzzleTool-arm64-apple-macosx26.0-debug.module-resources>"]
+

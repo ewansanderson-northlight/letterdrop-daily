@@ -1,0 +1,396 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+    "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool_PuzzleTool.bundle/enable.txt" : {
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Resources/enable.txt"
+        }
+      ],
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool_PuzzleTool.bundle/enable.txt"
+        }
+      ]
+    }
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.PuzzleTool-arm64-apple-macosx26.0-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/sources",
+      "importPath" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Generator.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Models.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Solver.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Trie.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Validator.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/main.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/DerivedSources/resource_bundle_accessor.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "virtual",
+          "name" : "<PuzzleTool-arm64-apple-macosx26.0-debug.module-resources>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/sources"
+        }
+      ],
+      "isLibrary" : false,
+      "moduleName" : "PuzzleTool",
+      "moduleOutputPath" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/Modules/PuzzleTool.swiftmodule",
+      "objects" : [
+        "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Generator.swift.o",
+        "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Models.swift.o",
+        "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Solver.swift.o",
+        "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Trie.swift.o",
+        "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Validator.swift.o",
+        "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/main.swift.o",
+        "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/resource_bundle_accessor.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx12.0",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-index-store-path",
+        "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-j10",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_AVAILABLE",
+        "-module-cache-path",
+        "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-Xfrontend",
+        "-entry-point-function-name",
+        "-Xfrontend",
+        "PuzzleTool_main",
+        "-color-diagnostics",
+        "-swift-version",
+        "5",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "puzzletool"
+      ],
+      "outputFileMapPath" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Generator.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Models.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Solver.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Trie.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Validator.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/main.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/resource_bundle_accessor.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/Modules/PuzzleTool.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Generator.swift",
+        "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Models.swift",
+        "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Solver.swift",
+        "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Trie.swift",
+        "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Validator.swift",
+        "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/main.swift",
+        "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/DerivedSources/resource_bundle_accessor.swift"
+      ],
+      "tempsPath" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "PuzzleTool" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "PuzzleTool",
+      "-package-name",
+      "puzzletool",
+      "-c",
+      "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Generator.swift",
+      "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Models.swift",
+      "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Solver.swift",
+      "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Trie.swift",
+      "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Validator.swift",
+      "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/main.swift",
+      "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/DerivedSources/resource_bundle_accessor.swift",
+      "-I",
+      "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx12.0",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-index-store-path",
+      "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-j10",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_AVAILABLE",
+      "-module-cache-path",
+      "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-Xfrontend",
+      "-entry-point-function-name",
+      "-Xfrontend",
+      "PuzzleTool_main",
+      "-color-diagnostics",
+      "-swift-version",
+      "5",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "puzzletool",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "PuzzleTool" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "traitConfiguration" : {
+    "default" : {
+
+    }
+  },
+  "writeCommands" : {
+    "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool-entitlement.plist" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<entitlement-plist>"
+        },
+        {
+          "kind" : "virtual",
+          "name" : "<com.apple.security.get-task-allow>"
+        }
+      ],
+      "outputFilePath" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool-entitlement.plist"
+    },
+    "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Generator.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Models.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Solver.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Trie.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Validator.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/main.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/DerivedSources/resource_bundle_accessor.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/sources"
+    },
+    "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Generator.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Models.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Solver.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Trie.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Validator.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/main.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/resource_bundle_accessor.swift.o"
+        }
+      ],
+      "outputFilePath" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.product/Objects.LinkFileList"
+    },
+    "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "": {
+    "swift-dependencies": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/master.swiftdeps"
+  },
+  "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Generator.swift": {
+    "dependencies": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Generator.d",
+    "object": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Generator.swift.o",
+    "swiftmodule": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Generator~partial.swiftmodule",
+    "swift-dependencies": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Generator.swiftdeps",
+    "diagnostics": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Generator.dia"
+  },
+  "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Models.swift": {
+    "dependencies": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Models.d",
+    "object": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Models.swift.o",
+    "swiftmodule": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Models~partial.swiftmodule",
+    "swift-dependencies": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Models.swiftdeps",
+    "diagnostics": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Models.dia"
+  },
+  "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Solver.swift": {
+    "dependencies": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Solver.d",
+    "object": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Solver.swift.o",
+    "swiftmodule": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Solver~partial.swiftmodule",
+    "swift-dependencies": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Solver.swiftdeps",
+    "diagnostics": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Solver.dia"
+  },
+  "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Trie.swift": {
+    "dependencies": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Trie.d",
+    "object": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Trie.swift.o",
+    "swiftmodule": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Trie~partial.swiftmodule",
+    "swift-dependencies": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Trie.swiftdeps",
+    "diagnostics": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Trie.dia"
+  },
+  "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/Validator.swift": {
+    "dependencies": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Validator.d",
+    "object": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Validator.swift.o",
+    "swiftmodule": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Validator~partial.swiftmodule",
+    "swift-dependencies": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Validator.swiftdeps",
+    "diagnostics": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/Validator.dia"
+  },
+  "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/Sources/PuzzleTool/main.swift": {
+    "dependencies": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/main.d",
+    "object": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/main.swift.o",
+    "swiftmodule": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/main~partial.swiftmodule",
+    "swift-dependencies": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/main.swiftdeps",
+    "diagnostics": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/main.dia"
+  },
+  "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/DerivedSources/resource_bundle_accessor.swift": {
+    "dependencies": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/resource_bundle_accessor.d",
+    "object": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/resource_bundle_accessor.swift.o",
+    "swiftmodule": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/resource_bundle_accessor~partial.swiftmodule",
+    "swift-dependencies": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/resource_bundle_accessor.swiftdeps",
+    "diagnostics": "/Users/ewansanderson/Claude Projects/BETA Gaming Project/Letter Drop/PuzzleTool/.build/arm64-apple-macosx/debug/PuzzleTool.build/resource_bundle_accessor.dia"
+  }
+}
