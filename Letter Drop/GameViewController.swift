@@ -2,54 +2,103 @@
 //  GameViewController.swift
 //  Letter Drop
 //
-//  Created by Ewan Sanderson on 12/03/2026.
+//  Hosts the SpriteKit scene. Embedded in GameContainerView via
+//  UIViewControllerRepresentable. Uses the DailyChallenge already
+//  fetched and validated by GameState — no independent network calls.
 //
 
 import UIKit
 import SpriteKit
-import GameplayKit
+import SwiftUI
+import Combine
 
-class GameViewController: UIViewController {
+final class GameViewController: UIViewController {
+
+    // MARK: - Dependencies
+
+    var gameState: GameState?
+
+    // MARK: - Private
+
+    private var skView    : SKView!
+    private var gameScene : GameScene?
+    private var cancellables = Set<AnyCancellable>()
+
+    // MARK: - Lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        // Load 'GameScene.sks' as a GKScene. This provides gameplay related content
-        // including entities and graphs.
-        if let scene = GKScene(fileNamed: "GameScene") {
-            
-            // Get the SKScene from the loaded GKScene
-            if let sceneNode = scene.rootNode as! GameScene? {
-                
-                // Copy gameplay related content over to the scene
-                sceneNode.entities = scene.entities
-                sceneNode.graphs = scene.graphs
-                
-                // Set the scale mode to scale to fit the window
-                sceneNode.scaleMode = .aspectFill
-                
-                // Present the scene
-                if let view = self.view as! SKView? {
-                    view.presentScene(sceneNode)
-                    
-                    view.ignoresSiblingOrder = true
-                    
-                    view.showsFPS = true
-                    view.showsNodeCount = true
+        view.backgroundColor = UIColor(Constants.Colors.background)
+        setupSpriteKitView()
+        setupHUDOverlay()
+        observePhase()
+    }
+
+    // MARK: - SpriteKit setup
+
+    private func setupSpriteKitView() {
+        skView = SKView(frame: view.bounds)
+        skView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        skView.backgroundColor  = UIColor(Constants.Colors.background)
+        skView.ignoresSiblingOrder = true
+        skView.showsFPS       = false
+        skView.showsNodeCount = false
+        view.addSubview(skView)
+
+        let scene = GameScene(size: view.bounds.size)
+        scene.gameState = gameState
+        skView.presentScene(scene)
+        gameScene = scene
+    }
+
+    // MARK: - SwiftUI HUD overlay
+
+    private func setupHUDOverlay() {
+        guard let gameState else { return }
+
+        let hudView = GameHUDView(gameState: gameState)
+        let hostingVC = UIHostingController(rootView: hudView)
+        hostingVC.view.backgroundColor = .clear
+        hostingVC.view.isOpaque = false
+
+        addChild(hostingVC)
+        hostingVC.view.isUserInteractionEnabled = false   // pass touches through to SpriteKit
+        view.addSubview(hostingVC.view)
+        hostingVC.view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            hostingVC.view.leadingAnchor  .constraint(equalTo: view.leadingAnchor),
+            hostingVC.view.trailingAnchor .constraint(equalTo: view.trailingAnchor),
+            hostingVC.view.topAnchor      .constraint(equalTo: view.topAnchor),
+            hostingVC.view.bottomAnchor   .constraint(equalTo: view.bottomAnchor)
+        ])
+        hostingVC.didMove(toParent: self)
+    }
+
+    // MARK: - Phase observation
+
+    private func observePhase() {
+        gameState?.$phase
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] phase in
+                switch phase {
+                case .playing:
+                    self?.beginGameplay()
+                case .results, .menu, .loading, .fetchError:
+                    self?.gameScene?.stopGame()
                 }
             }
-        }
+            .store(in: &cancellables)
     }
 
-    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        if UIDevice.current.userInterfaceIdiom == .phone {
-            return .allButUpsideDown
-        } else {
-            return .all
-        }
+    private func beginGameplay() {
+        // Use the puzzle that GameState already fetched and validated — no fallback.
+        guard let challenge = gameState?.dailyChallenge else { return }
+        let waveLetters = challenge.waves.map { $0.flat }
+        gameScene?.startGame(with: waveLetters)
     }
 
-    override var prefersStatusBarHidden: Bool {
-        return true
-    }
+    // MARK: - Orientation
+
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .portrait }
+    override var prefersStatusBarHidden: Bool { true }
 }
