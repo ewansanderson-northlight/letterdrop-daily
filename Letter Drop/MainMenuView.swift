@@ -10,9 +10,10 @@ import SwiftUI
 struct MainMenuView: View {
     @EnvironmentObject var gameState: GameState
 
-    @State private var appeared = false
-    @State private var showHowToPlay = false
-    @State private var showStats = false
+    @State private var appeared           = false
+    @State private var showHowToPlay      = false
+    @State private var showStats          = false
+    @State private var buttonsHighlighted = false
 
     var body: some View {
         ZStack {
@@ -33,9 +34,15 @@ struct MainMenuView: View {
         }
         .onAppear {
             appeared = false
-            // Brief pause so the crossfade from results settles
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 appeared = true
+            }
+            // Pulse secondary buttons gold 3× after main animations settle
+            for i in 0..<3 {
+                let on  = 0.90 + Double(i) * 0.55
+                let off = on  + 0.32
+                DispatchQueue.main.asyncAfter(deadline: .now() + on)  { buttonsHighlighted = true  }
+                DispatchQueue.main.asyncAfter(deadline: .now() + off) { buttonsHighlighted = false }
             }
         }
         .sheet(isPresented: $showHowToPlay) { HowToPlaySheet() }
@@ -71,6 +78,24 @@ struct MainMenuView: View {
                 .opacity(appeared ? 1 : 0)
                 .animation(.easeOut(duration: 0.4).delay(0.35), value: appeared)
         }
+        .background(
+            Ellipse()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            Color(red: 0.0, green: 0.58, blue: 0.65).opacity(0.28),
+                            Color(red: 0.05, green: 0.08, blue: 0.40).opacity(0.12),
+                            .clear
+                        ],
+                        center: .center,
+                        startRadius: 10,
+                        endRadius: 145
+                    )
+                )
+                .scaleEffect(x: 1.8, y: 1.0)
+                .blur(radius: 24)
+                .allowsHitTesting(false)
+        )
     }
 
     // MARK: - Bottom section
@@ -114,10 +139,12 @@ struct MainMenuView: View {
 
             // Secondary row
             HStack(spacing: 40) {
-                MenuSecondaryButton(title: "How to Play", icon: "questionmark.circle") {
+                MenuSecondaryButton(title: "How to Play", icon: "questionmark.circle",
+                                    highlighted: buttonsHighlighted) {
                     showHowToPlay = true
                 }
-                MenuSecondaryButton(title: "Stats", icon: "chart.bar") {
+                MenuSecondaryButton(title: "Stats", icon: "chart.bar",
+                                    highlighted: buttonsHighlighted) {
                     showStats = true
                 }
             }
@@ -126,7 +153,7 @@ struct MainMenuView: View {
             .animation(.easeOut(duration: 0.3).delay(0.6), value: appeared)
 
             Text("by unserious.games")
-                .font(Constants.Fonts.rounded(13, weight: .regular))
+                .font(Constants.Fonts.rounded(13, weight: .medium))
                 .foregroundStyle(Constants.Colors.tile.opacity(0.18))
                 .padding(.bottom, 36)
                 .opacity(appeared ? 1 : 0)
@@ -213,6 +240,7 @@ private struct DateChip: View {
 private struct MenuSecondaryButton: View {
     let title: String
     let icon: String
+    let highlighted: Bool
     let action: () -> Void
 
     var body: some View {
@@ -223,9 +251,13 @@ private struct MenuSecondaryButton: View {
                 Text(title)
                     .font(Constants.Fonts.rounded(12, weight: .medium))
             }
-            .foregroundStyle(Constants.Colors.tile.opacity(0.4))
+            .foregroundStyle(highlighted
+                ? Constants.Colors.gold
+                : Constants.Colors.tile.opacity(0.4))
+            .scaleEffect(highlighted ? 1.08 : 1.0)
         }
         .buttonStyle(.plain)
+        .animation(.easeInOut(duration: 0.22), value: highlighted)
     }
 }
 
@@ -240,28 +272,26 @@ private struct MenuPrimaryButtonStyle: ButtonStyle {
     }
 }
 
-// MARK: - Background drifting tiles
+// MARK: - Background drifting 5×5 grids
 
 private struct MenuBackground: View {
-    // Letter, x-fraction, fall duration, initial-y fraction (0=top, 1=bottom)
-    private let tiles: [(String, CGFloat, Double, CGFloat)] = [
-        ("L", 0.11, 11.0, 0.0),
-        ("E", 0.32, 9.0,  0.45),
-        ("T", 0.54, 13.0, 0.2),
-        ("D", 0.74, 10.5, 0.7),
-        ("R", 0.90, 8.5,  0.1),
+    // x-fraction, fall duration, initial-y fraction (0=top, 1=bottom)
+    private let grids: [(CGFloat, Double, CGFloat)] = [
+        (0.15, 16.0, 0.0),
+        (0.48, 12.0, 0.55),
+        (0.78, 18.0, 0.25),
+        (0.93, 10.5, 0.75),
     ]
 
     var body: some View {
         GeometryReader { geo in
-            ForEach(tiles.indices, id: \.self) { i in
-                let (letter, xFrac, duration, startFrac) = tiles[i]
-                DriftingTileSilhouette(
-                    letter: letter,
-                    x: geo.size.width * xFrac,
+            ForEach(grids.indices, id: \.self) { i in
+                let (xFrac, duration, startFrac) = grids[i]
+                DriftingGridSilhouette(
+                    x:        geo.size.width * xFrac,
                     duration: duration,
-                    startY: -70 + (geo.size.height + 140) * startFrac,
-                    endY: geo.size.height + 70
+                    startY:   -60 + (geo.size.height + 120) * startFrac,
+                    endY:     geo.size.height + 60
                 )
             }
         }
@@ -270,45 +300,47 @@ private struct MenuBackground: View {
     }
 }
 
-private struct DriftingTileSilhouette: View {
-    let letter: String
+private struct DriftingGridSilhouette: View {
     let x: CGFloat
     let duration: Double
     let startY: CGFloat
     let endY: CGFloat
 
+    private let cellSize: CGFloat = 9
+    private let cellGap:  CGFloat = 2
+    private let n = 5
+
     @State private var y: CGFloat
 
-    init(letter: String, x: CGFloat, duration: Double, startY: CGFloat, endY: CGFloat) {
-        self.letter = letter
-        self.x = x
-        self.duration = duration
-        self.startY = startY
-        self.endY = endY
+    init(x: CGFloat, duration: Double, startY: CGFloat, endY: CGFloat) {
+        self.x = x; self.duration = duration; self.startY = startY; self.endY = endY
         _y = State(initialValue: startY)
     }
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Constants.Colors.tile)
-                .frame(width: 50, height: 50)
-            Text(letter)
-                .font(Constants.Fonts.rounded(24, weight: .semibold))
-                .foregroundStyle(Constants.Colors.tileText)
-        }
-        .opacity(0.06)
-        .position(x: x, y: y)
-            .onAppear {
-                withAnimation(
-                    .linear(duration: duration * (1.0 - Double((startY + 70) / (endY + 70))))
-                    .repeatForever(autoreverses: false)
-                ) {
-                    y = endY
+        VStack(spacing: cellGap) {
+            ForEach(0..<n, id: \.self) { _ in
+                HStack(spacing: cellGap) {
+                    ForEach(0..<n, id: \.self) { _ in
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Constants.Colors.tile)
+                            .frame(width: cellSize, height: cellSize)
+                    }
                 }
             }
+        }
+        .opacity(0.07)
+        .position(x: x, y: y)
+        .onAppear {
+            withAnimation(
+                .linear(duration: duration * (1.0 - Double((startY + 60) / (endY + 60))))
+                .repeatForever(autoreverses: false)
+            ) {
+                y = endY
             }
         }
+    }
+}
 
 // MARK: - Preview
 

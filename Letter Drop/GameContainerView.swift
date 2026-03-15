@@ -77,7 +77,7 @@ struct GamePlayView: View {
             }
         }
         .animation(.easeInOut(duration: 0.18), value: gameState.showMissFeedback)
-        .animation(.easeInOut(duration: 0.22), value: gameState.bestWordFlash != nil)
+        .animation(.easeOut(duration: 0.55), value: gameState.bestWordFlash != nil)
         .animation(.easeOut(duration: 0.25),   value: gameState.countdownValue)
         .animation(.spring(response: 0.28, dampingFraction: 0.75),
                    value: gameState.currentSelection.isEmpty)
@@ -344,7 +344,8 @@ struct GameHUDView: View {
                 ZStack {
                     WaveDotsView(
                         total:         Constants.Game.wavesPerRound,
-                        solvedIndices: Set(gameState.foundWords.map(\.waveIndex))
+                        solvedIndices: Set(gameState.foundWords.map(\.waveIndex)),
+                        activeIndex:   gameState.timerPhase != .none ? gameState.currentWaveIndex : nil
                     )
                     HStack {
                         Spacer()
@@ -375,7 +376,8 @@ private struct SlowMoIndicator: View {
     private var isExhausted: Bool { allowance <= 0 }
     private var displaySeconds: Int { max(0, Int(allowance.rounded(.up))) }
 
-    @State private var breathe = false
+    @State private var breathe    = false
+    @State private var activating = false   // brief burst scale on activation
 
     var body: some View {
         HStack(spacing: 4) {
@@ -386,7 +388,12 @@ private struct SlowMoIndicator: View {
                     isExhausted ? Constants.Colors.tile.opacity(0.25) :
                                   Constants.Colors.tile
                 )
-                .scaleEffect(isActive ? (breathe ? 1.55 : 1.40) : 1.0)
+                .scaleEffect(
+                    activating ? 1.85 :
+                    isActive   ? (breathe ? 1.65 : 1.45) :
+                                 1.0
+                )
+                .animation(.spring(response: 0.22, dampingFraction: 0.55), value: activating)
                 .animation(.spring(response: 0.40, dampingFraction: 0.60), value: isActive)
 
             Text("\(displaySeconds)s")
@@ -403,10 +410,15 @@ private struct SlowMoIndicator: View {
         .animation(.easeInOut(duration: 0.2), value: isExhausted)
         .onChange(of: isActive) { active in
             if active {
-                withAnimation(.easeInOut(duration: 0.65).repeatForever(autoreverses: true)) {
-                    breathe = true
+                activating = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
+                    activating = false
+                    withAnimation(.easeInOut(duration: 0.65).repeatForever(autoreverses: true)) {
+                        breathe = true
+                    }
                 }
             } else {
+                activating = false
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                     breathe = false
                 }
@@ -540,18 +552,23 @@ private struct MultiplierBadge: View {
 private struct WaveDotsView: View {
     let total: Int
     let solvedIndices: Set<Int>
+    var activeIndex: Int? = nil
 
     var body: some View {
         HStack(spacing: 7) {
             ForEach(0..<total, id: \.self) { i in
+                let solved = solvedIndices.contains(i)
+                let active = activeIndex == i && !solved
                 Circle()
-                    .fill(solvedIndices.contains(i)
-                          ? Constants.Colors.gold
-                          : Constants.Colors.tile.opacity(0.20))
-                    .frame(width: 8, height: 8)
-                    .scaleEffect(solvedIndices.contains(i) ? 1.15 : 1.0)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.6),
-                               value: solvedIndices.contains(i))
+                    .fill(solved ? Constants.Colors.gold :
+                          active ? Constants.Colors.tile.opacity(0.55) :
+                                   Constants.Colors.tile.opacity(0.20))
+                    .frame(width: 11, height: 11)
+                    .shadow(color: solved ? Constants.Colors.gold.opacity(0.60) : .clear,
+                            radius: 6, x: 0, y: 0)
+                    .scaleEffect(solved ? 1.15 : active ? 1.05 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: solved)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: active)
             }
         }
     }

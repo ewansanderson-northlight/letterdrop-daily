@@ -160,6 +160,7 @@ final class GameScene: SKScene {
             guard let self else { return }
             node.animateIn()
             self.blockPhase = .playing(index)
+            self.gameState?.currentWaveIndex = index
             self.gameState?.startBlockTimer(blockIndex: index)
             if index == 2 || index == 4 { HapticManager.waveSpeedUp() }
         }
@@ -536,7 +537,7 @@ final class GameScene: SKScene {
                 DispatchQueue.main.async { [weak self] in
                     self?.gameState?.bestWordFlash =
                         GameState.BestWordFlash(word: best.word, score: best.score)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
                         self?.gameState?.bestWordFlash = nil
                     }
                 }

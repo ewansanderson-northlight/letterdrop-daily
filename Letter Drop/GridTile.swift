@@ -136,12 +136,15 @@ final class GridTile: SKNode {
     /// Gold glow on a tile the finger has already passed through during a swipe.
     func playGhostTrail() {
         background.removeAllActions()
-        background.fillColor = UIColor(Constants.Colors.gold).withAlphaComponent(0.50)
+        background.fillColor   = UIColor(Constants.Colors.gold).withAlphaComponent(0.58)
+        background.strokeColor = UIColor(Constants.Colors.gold).withAlphaComponent(0.85)
+        background.glowWidth   = 8.0
         background.run(SKAction.sequence([
-            SKAction.wait(forDuration: 0.50),
+            SKAction.wait(forDuration: 0.55),
             SKAction.run { [weak self] in
-                self?.background.fillColor =
-                    UIColor(Constants.Colors.tile).withAlphaComponent(0.65)
+                self?.background.fillColor   = UIColor(Constants.Colors.tile).withAlphaComponent(0.65)
+                self?.background.strokeColor = UIColor(Constants.Colors.tileShadow).withAlphaComponent(0.20)
+                self?.background.glowWidth   = 0
             }
         ]))
     }
@@ -149,6 +152,8 @@ final class GridTile: SKNode {
     /// Cancels any running ghost-trail animation and lets updateVisual() reset colour.
     func cancelGhostTrail() {
         background.removeAllActions()
+        background.strokeColor = UIColor(Constants.Colors.tileShadow).withAlphaComponent(0.20)
+        background.glowWidth   = 0
     }
 
     /// Brief red-tinted deselect when an invalid word is rejected.

@@ -202,6 +202,9 @@ final class GameState: ObservableObject {
     /// Non-nil for ~1 s after the multiplier jumps up; value is the new multiplier.
     @Published var comboBoostFlash: Int? = nil
 
+    /// Index of the wave currently being played (0-5). Set by GameScene when each block enters play.
+    @Published var currentWaveIndex: Int = 0
+
     /// Score multiplier applied to the next word submission.
     /// Streak 0 or 1 → 1×, streak 2 → 2×, streak 3 → 4×, 4 → 8×, 5 → 16×, 6 → 32×
     var currentMultiplier: Int { max(1, 1 << max(0, consecutiveSolves - 1)) }
@@ -297,6 +300,7 @@ final class GameState: ObservableObject {
         waveBanner          = nil
         blockTopUIKitY      = 0
         comboBoostFlash     = nil
+        currentWaveIndex    = 0
         phase = .playing
         markPlayedToday()
         startCountdown()    // GameScene starts block 0 timer after GO

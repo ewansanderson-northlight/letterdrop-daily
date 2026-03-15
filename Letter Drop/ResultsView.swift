@@ -141,6 +141,12 @@ private struct ScoreCard: View {
     let maxScore: Int
     let revealed: Bool
 
+    private var starCount: Int {
+        guard maxScore > 0 else { return 0 }
+        let pct = Double(displayScore) / Double(maxScore)
+        return pct >= 0.70 ? 3 : pct >= 0.35 ? 2 : 1
+    }
+
     var body: some View {
         VStack(spacing: 4) {
             Text("\(displayScore)")
@@ -149,9 +155,14 @@ private struct ScoreCard: View {
                 .monospacedDigit()
                 .contentTransition(.numericText())
             if maxScore > 0 {
-                Text("/ \(maxScore) max")
-                    .font(Constants.Fonts.rounded(15, weight: .regular))
-                    .foregroundStyle(Constants.Colors.tile.opacity(0.35))
+                HStack(spacing: 5) {
+                    ForEach(0..<3, id: \.self) { i in
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(Constants.Colors.gold.opacity(i < starCount ? 1.0 : 0.15))
+                            .animation(.spring(response: 0.4), value: starCount)
+                    }
+                }
             } else {
                 Text("points")
                     .font(Constants.Fonts.rounded(17, weight: .regular))
@@ -229,15 +240,19 @@ private struct WaveResultCell: View {
             }
 
             if showOptimal, let opt = optimal {
-                Text("Best: \(opt.word)")
-                    .font(Constants.Fonts.rounded(10, weight: .medium))
-                    .foregroundStyle(
-                        found != nil
-                            ? Constants.Colors.tileText.opacity(0.45)
-                            : Constants.Colors.tile.opacity(0.50)
-                    )
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                HStack(spacing: 3) {
+                    Text("best:")
+                        .font(Constants.Fonts.rounded(9, weight: .medium))
+                        .foregroundStyle(Constants.Colors.gold.opacity(0.65))
+                    Text(opt.word)
+                        .font(Constants.Fonts.rounded(10, weight: .bold))
+                        .foregroundStyle(Constants.Colors.gold.opacity(0.90))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(Constants.Colors.gold.opacity(0.13), in: Capsule())
             }
         }
         .frame(maxWidth: .infinity)
