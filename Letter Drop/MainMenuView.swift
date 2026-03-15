@@ -361,8 +361,6 @@ private struct UnseriousAboutOverlay: View {
     @State private var cardAppeared = false
     @State private var dotPhase     = 0
 
-    private let dotTimer = Timer.publish(every: 0.48, on: .main, in: .common).autoconnect()
-
     private var dotsString: String {
         String(repeating: ".", count: dotPhase + 1)
     }
@@ -431,7 +429,7 @@ private struct UnseriousAboutOverlay: View {
                 cardAppeared = true
             }
         }
-        .onReceive(dotTimer) { _ in
+        .onReceive(Timer.publish(every: 0.48, on: .main, in: .common).autoconnect()) { _ in
             dotPhase = (dotPhase + 1) % 3
         }
     }
