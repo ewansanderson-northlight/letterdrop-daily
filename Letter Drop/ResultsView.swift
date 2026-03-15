@@ -249,16 +249,16 @@ private struct WaveResultCell: View {
                 HStack(spacing: 3) {
                     Text("best:")
                         .font(Constants.Fonts.rounded(9, weight: .medium))
-                        .foregroundStyle(Constants.Colors.gold.opacity(0.65))
+                        .foregroundStyle(Constants.Colors.success.opacity(0.65))
                     Text(opt.word)
                         .font(Constants.Fonts.rounded(10, weight: .bold))
-                        .foregroundStyle(Constants.Colors.gold.opacity(0.90))
+                        .foregroundStyle(Constants.Colors.success.opacity(0.90))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                 }
                 .padding(.horizontal, 7)
                 .padding(.vertical, 3)
-                .background(Constants.Colors.gold.opacity(0.13), in: Capsule())
+                .background(Constants.Colors.success.opacity(0.13), in: Capsule())
             }
         }
         .frame(maxWidth: .infinity)
