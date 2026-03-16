@@ -283,7 +283,6 @@
 				INFOPLIST_FILE = "Letter Drop/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Letter Drop";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.word-games";
-				INFOPLIST_KEY_POSTHOG_API_KEY = "$(POSTHOG_API_KEY)";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
@@ -319,7 +318,6 @@
 				INFOPLIST_FILE = "Letter Drop/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Letter Drop";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.word-games";
-				INFOPLIST_KEY_POSTHOG_API_KEY = "$(POSTHOG_API_KEY)";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
