@@ -9,7 +9,8 @@ let package = Package(
             name: "PuzzleTool",
             path: "Sources/PuzzleTool",
             resources: [
-                .copy("Resources/enable.txt")
+                .copy("Resources/enable.txt"),
+                .copy("Resources/blocklist.txt")
             ]
         )
     ]

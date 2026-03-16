@@ -5,9 +5,11 @@ import Foundation
 struct Validator {
 
     private let trie: Trie
+    private let filter: ProfanityFilter
 
-    init(trie: Trie) {
+    init(trie: Trie, filter: ProfanityFilter) {
         self.trie = trie
+        self.filter = filter
     }
 
     // MARK: - Full puzzle
@@ -74,6 +76,18 @@ struct Validator {
         // Target word present
         if !words.contains(wave.targetWord) {
             errors.append("Wave \(index): targetWord '\(wave.targetWord)' not solvable in grid")
+        }
+
+        // Profanity — word list
+        let blockedWords = words.filter { filter.isBlocked($0) }
+        for word in blockedWords {
+            errors.append("Wave \(index): blocked word '\(word)' in scoreable word list")
+        }
+
+        // Profanity — grid
+        let blockedInGrid = filter.scanGrid(wave.grid)
+        for word in blockedInGrid {
+            errors.append("Wave \(index): blocked word '\(word)' readable in block grid")
         }
 
         return ValidationResult(

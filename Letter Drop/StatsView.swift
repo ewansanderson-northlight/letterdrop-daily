@@ -252,7 +252,7 @@ private struct StatCard: View {
         .opacity(revealed ? 1 : 0)
         .offset(y: revealed ? 0 : 16)
         .animation(.spring(response: 0.45, dampingFraction: 0.72).delay(revealDelay), value: revealed)
-        .onChange(of: revealed) { isRevealed in
+        .onChange(of: revealed) { _, isRevealed in
             if isRevealed { animateCountUp() }
         }
     }

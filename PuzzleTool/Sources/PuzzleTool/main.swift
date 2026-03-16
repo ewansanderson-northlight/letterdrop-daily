@@ -9,7 +9,8 @@ import Foundation
 
 // MARK: - Bootstrap
 
-let trie = loadTrie()
+let filter = ProfanityFilter()
+let trie = loadTrie(filter: filter)
 
 guard CommandLine.arguments.count >= 2 else {
     printUsage()
@@ -49,7 +50,7 @@ func runGenerate() {
     print("Generating puzzle for \(dateString)…")
 
     do {
-        let puzzle = try Generator.generate(dateString: dateString, trie: trie)
+        let puzzle = try Generator.generate(dateString: dateString, trie: trie, filter: filter)
 
         // Write JSON
         let encoder = JSONEncoder()
@@ -65,7 +66,7 @@ func runGenerate() {
         print("Written: \(path)")
 
         // Quick validation summary
-        let validator = Validator(trie: trie)
+        let validator = Validator(trie: trie, filter: filter)
         let results = validator.validate(puzzle: puzzle)
         for (i, r) in results.enumerated() {
             let status = r.isValid ? "✓" : "✗"
@@ -86,7 +87,7 @@ func runValidate() {
     let path = CommandLine.arguments[2]
     let puzzle = loadPuzzle(from: path)
 
-    let validator = Validator(trie: trie)
+    let validator = Validator(trie: trie, filter: filter)
     let results = validator.validate(puzzle: puzzle)
 
     var allValid = true
@@ -111,7 +112,7 @@ func runPreview() {
 
     print("Puzzle: \(puzzle.date)  (\(puzzle.waves.count) waves)\n")
 
-    let validator = Validator(trie: trie)
+    let validator = Validator(trie: trie, filter: filter)
 
     for (i, wave) in puzzle.waves.enumerated() {
         print("── Wave \(i+1) [\(wave.difficulty.rawValue.uppercased())]  target: \(wave.targetWord)")
@@ -129,7 +130,7 @@ func runPreview() {
 
 // MARK: - Helpers
 
-func loadTrie() -> Trie {
+func loadTrie(filter: ProfanityFilter) -> Trie {
     guard let url = Bundle.module.url(forResource: "enable", withExtension: "txt") else {
         fputs("Fatal: enable.txt not found in bundle\n", stderr)
         exit(1)
@@ -140,11 +141,18 @@ func loadTrie() -> Trie {
     }
 
     let trie = Trie()
+    var removed: [String] = []
     for line in contents.split(separator: "\n") {
         let word = line.trimmingCharacters(in: .whitespaces).uppercased()
-        if word.count >= Solver.minLength {
+        guard word.count >= Solver.minLength else { continue }
+        if filter.isBlocked(word) {
+            removed.append(word)
+        } else {
             trie.insert(word)
         }
+    }
+    if !removed.isEmpty {
+        print("⚠ Profanity filter: removed \(removed.count) word(s) from dictionary: \(removed.joined(separator: ", "))")
     }
     return trie
 }

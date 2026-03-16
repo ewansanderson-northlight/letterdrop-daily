@@ -11,7 +11,7 @@ struct Generator {
 
     /// Generate a full 6-wave puzzle for `dateString` ("YYYY-MM-DD").
     /// Throws if any wave fails to meet its difficulty threshold after `maxRetries`.
-    static func generate(dateString: String, trie: Trie) throws -> Puzzle {
+    static func generate(dateString: String, trie: Trie, filter: ProfanityFilter) throws -> Puzzle {
         let seed = dateSeed(dateString)
         let layout: [DifficultyLevel] = [.green, .amber, .red, .green, .amber, .red]
 
@@ -19,7 +19,8 @@ struct Generator {
         for (i, difficulty) in layout.enumerated() {
             let wave = try generateWave(difficulty: difficulty,
                                         waveSeed: seed &+ UInt64(i * 1_000_003),
-                                        trie: trie)
+                                        trie: trie,
+                                        filter: filter)
             waves.append(wave)
         }
 
@@ -31,11 +32,21 @@ struct Generator {
     private static func generateWave(difficulty: DifficultyLevel,
                                      waveSeed: UInt64,
                                      trie: Trie,
+                                     filter: ProfanityFilter,
                                      maxRetries: Int = 400) throws -> Wave {
         for attempt in 0..<maxRetries {
             // Each retry gets its own sub-seed so we don't repeat identical grids
             var innerRNG = LCG(seed: waveSeed &+ UInt64(attempt) &* 999_983)
             let grid = randomGrid(rng: &innerRNG)
+
+            // Reject grids that contain blocked words readable via any 8-direction path
+            let blockedInGrid = filter.scanGrid(grid)
+            if !blockedInGrid.isEmpty {
+                for word in blockedInGrid {
+                    print("⚠ [\(difficulty.rawValue)] Blocked word '\(word)' found in grid (attempt \(attempt + 1)), regenerating…")
+                }
+                continue
+            }
 
             let words = Solver.solve(grid: grid, trie: trie)
             let hasLongWord = words.contains { $0.count >= 6 }

@@ -129,7 +129,7 @@ private struct CountdownOverlay: View {
                 .opacity(opacity)
         }
         .onAppear { pop() }
-        .onChange(of: value) { _ in scale = 0.35; opacity = 0; pop() }
+        .onChange(of: value) { scale = 0.35; opacity = 0; pop() }
     }
 
     private func pop() {
@@ -178,7 +178,7 @@ private struct StreakPulseOverlay: View {
         Rectangle()
             .strokeBorder(Constants.Colors.gold.opacity(borderOpacity), lineWidth: 16)
             .ignoresSafeArea()
-            .onChange(of: consecutiveSolves) { newVal in
+            .onChange(of: consecutiveSolves) { _, newVal in
                 guard newVal > prevSolves, newVal >= 2 else { prevSolves = newVal; return }
                 prevSolves    = newVal
                 borderOpacity = 0.75
@@ -408,7 +408,7 @@ private struct SlowMoIndicator: View {
         }
         .opacity(isExhausted ? 0.45 : 1.0)
         .animation(.easeInOut(duration: 0.2), value: isExhausted)
-        .onChange(of: isActive) { active in
+        .onChange(of: isActive) { _, active in
             if active {
                 activating = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
@@ -476,14 +476,14 @@ private struct TimerView: View {
                 .transition(.opacity)
             }
         }
-        .onChange(of: isWarning) { warn in
+        .onChange(of: isWarning) { _, warn in
             if warn && !isUrgent {
                 withAnimation(.easeInOut(duration: 0.55).repeatForever(autoreverses: true)) {
                     pulse = true
                 }
             }
         }
-        .onChange(of: isUrgent) { urgent in
+        .onChange(of: isUrgent) { _, urgent in
             if urgent {
                 withAnimation(.easeInOut(duration: 0.28).repeatForever(autoreverses: true)) {
                     pulse = true
@@ -539,7 +539,7 @@ private struct MultiplierBadge: View {
             .opacity(popped ? 1 : 0)
             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: popped)
             .onAppear { popped = true }
-            .onChange(of: multiplier) { _ in
+            .onChange(of: multiplier) {
                 popped = false
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { popped = true }
             }
