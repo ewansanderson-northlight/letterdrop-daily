@@ -4,11 +4,20 @@
 //
 
 import SwiftUI
+import PostHog
 
 @main
 struct LetterDropApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var gameState = GameState()
+
+    init() {
+        AnalyticsManager.shared.setup()
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        let today = fmt.string(from: Date())
+        AnalyticsManager.shared.track(.appOpened(date: today))
+    }
 
     var body: some Scene {
         WindowGroup {
