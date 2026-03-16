@@ -6,8 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		830A3FE52F681B89007CFDAE /* PostHog in Frameworks */ = {isa = PBXBuildFile; productRef = 830A3FE42F681B89007CFDAE /* PostHog */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		834675692F634E21000FB377 /* Letter Drop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Letter Drop.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3D42F634E21000FB377 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Config.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -36,6 +41,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				830A3FE52F681B89007CFDAE /* PostHog in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -45,6 +51,7 @@
 		834675602F634E21000FB377 = {
 			isa = PBXGroup;
 			children = (
+				A1B2C3D42F634E21000FB377 /* Config.xcconfig */,
 				8346756B2F634E21000FB377 /* Letter Drop */,
 				8346756A2F634E21000FB377 /* Products */,
 			);
@@ -78,6 +85,7 @@
 			);
 			name = "Letter Drop";
 			packageProductDependencies = (
+				830A3FE42F681B89007CFDAE /* PostHog */,
 			);
 			productName = "Letter Drop";
 			productReference = 834675692F634E21000FB377 /* Letter Drop.app */;
@@ -107,6 +115,9 @@
 			);
 			mainGroup = 834675602F634E21000FB377;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				830A3FE32F681B89007CFDAE /* XCRemoteSwiftPackageReference "posthog-ios" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 8346756A2F634E21000FB377 /* Products */;
 			projectDirPath = "";
@@ -140,6 +151,7 @@
 /* Begin XCBuildConfiguration section */
 		8346757E2F634E21000FB377 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A1B2C3D42F634E21000FB377 /* Config.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -203,6 +215,7 @@
 		};
 		8346757F2F634E21000FB377 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A1B2C3D42F634E21000FB377 /* Config.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -259,6 +272,7 @@
 		};
 		834675812F634E21000FB377 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A1B2C3D42F634E21000FB377 /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -268,6 +282,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Letter Drop";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.word-games";
+				INFOPLIST_KEY_POSTHOG_API_KEY = "$(POSTHOG_API_KEY)";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
@@ -292,6 +307,7 @@
 		};
 		834675822F634E21000FB377 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A1B2C3D42F634E21000FB377 /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -301,6 +317,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Letter Drop";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.word-games";
+				INFOPLIST_KEY_POSTHOG_API_KEY = "$(POSTHOG_API_KEY)";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
@@ -345,6 +362,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		830A3FE32F681B89007CFDAE /* XCRemoteSwiftPackageReference "posthog-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/PostHog/posthog-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.47.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		830A3FE42F681B89007CFDAE /* PostHog */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 830A3FE32F681B89007CFDAE /* XCRemoteSwiftPackageReference "posthog-ios" */;
+			productName = PostHog;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 834675612F634E21000FB377 /* Project object */;
 }

@@ -9,6 +9,9 @@
         raw.githubusercontent.com already uses HTTPS/TLS; this entry documents
         the dependency explicitly and pins the connection requirements.
     -->
+    <key>POSTHOG_API_KEY</key>
+    <string>$(POSTHOG_API_KEY)</string>
+
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSExceptionDomains</key>
