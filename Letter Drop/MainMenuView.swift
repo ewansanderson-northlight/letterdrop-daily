@@ -15,6 +15,7 @@ struct MainMenuView: View {
     @State private var showHowToPlay      = false
     @State private var showStats          = false
     @State private var showAbout          = false
+    @State private var showHomeShare      = false
     @State private var buttonsHighlighted = false
 
     var body: some View {
@@ -141,10 +142,40 @@ struct MainMenuView: View {
                 .background(Constants.Colors.tile, in: RoundedRectangle(cornerRadius: 18))
             }
             .buttonStyle(MenuPrimaryButtonStyle())
-            .padding(.bottom, 20)
+            .padding(.bottom, 12)
             .opacity(appeared ? 1 : 0)
             .offset(y: appeared ? 0 : 12)
             .animation(.spring(response: 0.45, dampingFraction: 0.7).delay(0.5), value: appeared)
+
+            // Share & Compete
+            Button { showHomeShare = true } label: {
+                HStack(spacing: 7) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text("Share & Compete!")
+                        .font(Constants.Fonts.rounded(15, weight: .semibold))
+                }
+                .foregroundStyle(Constants.Colors.tile.opacity(0.45))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(Constants.Colors.tile.opacity(0.12), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+            .padding(.bottom, 20)
+            .opacity(appeared ? 1 : 0)
+            .animation(.easeOut(duration: 0.3).delay(0.55), value: appeared)
+            .sheet(isPresented: $showHomeShare) {
+                ActivitySheet(
+                    items: [
+                        "Join me in Letter Drop's Daily Challenge — can you beat my score? 🔤⬇️",
+                        URL(string: "https://letterdrops.app")!
+                    ],
+                    isPresented: $showHomeShare
+                )
+            }
 
             // Secondary row
             HStack(spacing: 40) {

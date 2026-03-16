@@ -53,7 +53,7 @@ struct ResultsView: View {
                 }
 
                 // ── CTA buttons ──────────────────────────────────────────────
-                CTASection(shareText: shareText)
+                CTASection()
                     .opacity(revealed ? 1 : 0)
                     .offset(y: revealed ? 0 : 16)
                     .animation(.spring(response: 0.4, dampingFraction: 0.75).delay(ctaDelay),
@@ -95,20 +95,6 @@ struct ResultsView: View {
         }
     }
 
-    private var shareText: String {
-        let date  = Date.now.formatted(.dateTime.month(.wide).day().year())
-        let found = gameState.foundWords.count
-        var lines = [
-            "Letter Drop · \(date)",
-            "\(found)/\(Constants.Game.wavesPerRound) waves · \(gameState.score) pts",
-            ""
-        ]
-        for fw in gameState.foundWords.sorted(by: { $0.waveIndex < $1.waveIndex }) {
-            let pad = String(repeating: " ", count: max(0, 10 - fw.word.count))
-            lines.append("\(fw.word)\(pad)+\(fw.score)")
-        }
-        return lines.joined(separator: "\n")
-    }
 }
 
 // MARK: - Header
@@ -331,16 +317,41 @@ private struct HighlightRow: View {
 // MARK: - CTA section
 
 private struct CTASection: View {
-    let shareText: String
     @EnvironmentObject var gameState: GameState
+
+    @State private var shareImage: UIImage? = nil
+    @State private var showImageShare       = false
+    @State private var showChallengeShare   = false
+
+    private var bestScoringWord: FoundWord? {
+        gameState.foundWords.max(by: { $0.score < $1.score })
+    }
+
+    private var challengeText: String {
+        "I scored \(gameState.score) on today's Letter Drop Daily Challenge — think you can beat me? 🔤⬇️"
+    }
 
     var body: some View {
         VStack(spacing: 12) {
-            ShareLink(item: shareText) {
+
+            // Share Score → PNG image card
+            Button {
+                let fmt = DateFormatter()
+                fmt.dateFormat = "d MMMM yyyy"
+                if let img = renderScoreCard(
+                    score: gameState.score,
+                    maxScore: gameState.theoreticalMaxScore,
+                    bestWord: bestScoringWord,
+                    dateString: fmt.string(from: Date())
+                ) {
+                    shareImage = img
+                    showImageShare = true
+                }
+            } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "square.and.arrow.up")
                         .font(.system(size: 15, weight: .semibold))
-                    Text("Share Results")
+                    Text("Share Score")
                         .font(Constants.Fonts.rounded(16, weight: .semibold))
                 }
                 .foregroundStyle(Constants.Colors.tile.opacity(0.6))
@@ -349,6 +360,34 @@ private struct CTASection: View {
                 .background(
                     RoundedRectangle(cornerRadius: 14)
                         .strokeBorder(Constants.Colors.tile.opacity(0.15), lineWidth: 1.5)
+                )
+            }
+            .sheet(isPresented: $showImageShare) {
+                if let img = shareImage {
+                    ActivitySheet(items: [img], isPresented: $showImageShare)
+                }
+            }
+
+            // Challenge Your Friends → text + URL
+            Button { showChallengeShare = true } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "person.2")
+                        .font(.system(size: 15, weight: .semibold))
+                    Text("Challenge Your Friends")
+                        .font(Constants.Fonts.rounded(16, weight: .semibold))
+                }
+                .foregroundStyle(Constants.Colors.tile.opacity(0.6))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(Constants.Colors.tile.opacity(0.15), lineWidth: 1.5)
+                )
+            }
+            .sheet(isPresented: $showChallengeShare) {
+                ActivitySheet(
+                    items: [challengeText, URL(string: "https://letterdrops.app")!],
+                    isPresented: $showChallengeShare
                 )
             }
 
