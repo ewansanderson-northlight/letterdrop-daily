@@ -12,7 +12,7 @@
 
 /* Begin PBXFileReference section */
 		834675692F634E21000FB377 /* Letter Drop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Letter Drop.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		A1B2C3D42F634E21000FB377 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Config.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
+		A1B2C3D42F634E21000FB377 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -280,6 +280,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 48HL57D9BH;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Letter Drop/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Letter Drop";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.word-games";
 				INFOPLIST_KEY_POSTHOG_API_KEY = "$(POSTHOG_API_KEY)";
@@ -315,6 +316,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 48HL57D9BH;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Letter Drop/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Letter Drop";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.word-games";
 				INFOPLIST_KEY_POSTHOG_API_KEY = "$(POSTHOG_API_KEY)";

@@ -2,33 +2,24 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-
-    <!--
-        NSAppTransportSecurity — specific domain exception for the daily puzzle endpoint.
-        NSAllowsArbitraryLoads is intentionally NOT set.
-        raw.githubusercontent.com already uses HTTPS/TLS; this entry documents
-        the dependency explicitly and pins the connection requirements.
-    -->
-    <key>POSTHOG_API_KEY</key>
-    <string>$(POSTHOG_API_KEY)</string>
-
-    <key>NSAppTransportSecurity</key>
-    <dict>
-        <key>NSExceptionDomains</key>
-        <dict>
-            <key>raw.githubusercontent.com</key>
-            <dict>
-                <key>NSIncludesSubdomains</key>
-                <false/>
-                <key>NSExceptionAllowsInsecureHTTPLoads</key>
-                <false/>
-                <key>NSExceptionRequiresForwardSecrecy</key>
-                <true/>
-                <key>NSExceptionMinimumTLSVersion</key>
-                <string>TLSv1.2</string>
-            </dict>
-        </dict>
-    </dict>
-
+	<key>POSTHOG_API_KEY</key>
+	<string>$(POSTHOG_API_KEY)</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>raw.githubusercontent.com</key>
+			<dict>
+				<key>NSIncludesSubdomains</key>
+				<false/>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<false/>
+				<key>NSExceptionRequiresForwardSecrecy</key>
+				<true/>
+				<key>NSExceptionMinimumTLSVersion</key>
+				<string>TLSv1.2</string>
+			</dict>
+		</dict>
+	</dict>
 </dict>
 </plist>
