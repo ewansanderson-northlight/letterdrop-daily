@@ -151,10 +151,11 @@ final class GameState: ObservableObject {
     }
     @Published var bestWordFlash: BestWordFlash? = nil
 
-    // MARK: - Submitted word display (shown while best word reveals)
+    // MARK: - Submitted word display (frozen tile preview after submit)
     struct SubmittedWordDisplay: Equatable {
         let word: String
         let score: Int
+        let multiplier: Int
     }
     @Published var submittedWordDisplay: SubmittedWordDisplay? = nil
 
@@ -369,6 +370,8 @@ final class GameState: ObservableObject {
         stopBlockTimer()
         countdownGeneration += 1    // cancel any pending countdown
         countdownValue = nil
+        submittedWordDisplay = nil
+        bestWordFlash = nil
         if score > bestScore { bestScore = score }
         totalScore += score
         gamesPlayed += 1
@@ -389,7 +392,7 @@ final class GameState: ObservableObject {
 
     func submitWord(word: String, score wordScore: Int, waveIndex: Int) {
         foundWords.append(FoundWord(word: word.uppercased(), score: wordScore, waveIndex: waveIndex))
-        submittedWordDisplay = SubmittedWordDisplay(word: word.uppercased(), score: wordScore)
+        // submittedWordDisplay is set by GameScene (which has the multiplier)
         score += wordScore
         totalWordsCompleted += 1
         let oldMultiplier = currentMultiplier

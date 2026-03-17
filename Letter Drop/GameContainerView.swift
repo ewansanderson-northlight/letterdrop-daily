@@ -28,27 +28,26 @@ struct GamePlayView: View {
                     .allowsHitTesting(false)
             }
 
-            // Submitted word + best word reveal stacked at bottom
-            if gameState.submittedWordDisplay != nil || gameState.bestWordFlash != nil {
-                SubmittedAndBestWordOverlay(
-                    submitted: gameState.submittedWordDisplay,
-                    best:      gameState.bestWordFlash
-                )
-                .allowsHitTesting(false)
-            }
-
             // Ready-Set-Go countdown
             if let count = gameState.countdownValue {
                 CountdownOverlay(value: count)
                     .allowsHitTesting(false)
             }
 
-            // Word preview — above the active block
-            if !gameState.currentSelection.isEmpty {
+            // Word preview: live swiping OR frozen submitted tiles (with best word below)
+            let previewWord = !gameState.currentSelection.isEmpty
+                ? gameState.currentSelection
+                : (gameState.submittedWordDisplay?.word ?? "")
+            let previewMultiplier = !gameState.currentSelection.isEmpty
+                ? gameState.currentMultiplier
+                : (gameState.submittedWordDisplay?.multiplier ?? 1)
+
+            if !previewWord.isEmpty {
                 WordPreviewOverlay(
-                    word:          gameState.currentSelection,
-                    multiplier:    gameState.currentMultiplier,
-                    blockTopUIKitY: gameState.blockTopUIKitY
+                    word:           previewWord,
+                    multiplier:     previewMultiplier,
+                    blockTopUIKitY: gameState.blockTopUIKitY,
+                    bestWordFlash:  gameState.currentSelection.isEmpty ? gameState.bestWordFlash : nil
                 )
                 .transition(.opacity.combined(with: .scale(scale: 0.94, anchor: .bottom)))
                 .allowsHitTesting(false)
@@ -79,11 +78,11 @@ struct GamePlayView: View {
             }
         }
         .animation(.easeInOut(duration: 0.18), value: gameState.showMissFeedback)
-        .animation(.easeOut(duration: 0.45), value: gameState.submittedWordDisplay != nil)
-        .animation(.easeOut(duration: 0.45), value: gameState.bestWordFlash != nil)
         .animation(.easeOut(duration: 0.25),   value: gameState.countdownValue)
         .animation(.spring(response: 0.28, dampingFraction: 0.75),
                    value: gameState.currentSelection.isEmpty)
+        .animation(.spring(response: 0.28, dampingFraction: 0.75),
+                   value: gameState.submittedWordDisplay != nil)
         .animation(.easeOut(duration: 0.55),
                    value: gameState.isSlowMoActive)
         .animation(.spring(response: 0.28, dampingFraction: 0.70),
@@ -94,11 +93,14 @@ struct GamePlayView: View {
 }
 
 // MARK: - Word preview overlay (above the active block)
+// Shows the live swipe preview OR the frozen tile row after submit.
+// bestWordFlash is only passed when the word is frozen (not during live swiping).
 
 private struct WordPreviewOverlay: View {
     let word          : String
     let multiplier    : Int
     let blockTopUIKitY: CGFloat
+    var bestWordFlash : GameState.BestWordFlash? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -107,7 +109,20 @@ private struct WordPreviewOverlay: View {
                 .frame(height: blockTopUIKitY > 0
                        ? max(140, blockTopUIKitY - 64)
                        : 280)
-            SelectionPreview(word: word, multiplier: multiplier)
+            VStack(spacing: 8) {
+                SelectionPreview(word: word, multiplier: multiplier)
+
+                // Best word badge floats in below the frozen tile row
+                if let flash = bestWordFlash {
+                    BestWordBadge(flash: flash)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .bottom).combined(with: .opacity),
+                            removal:   .opacity
+                        ))
+                }
+            }
+            .animation(.easeOut(duration: 0.35), value: bestWordFlash != nil)
+
             Spacer()
         }
     }
@@ -142,49 +157,7 @@ private struct CountdownOverlay: View {
     }
 }
 
-// MARK: - Submitted word + best word stacked overlay
-
-private struct SubmittedAndBestWordOverlay: View {
-    let submitted: GameState.SubmittedWordDisplay?
-    let best:      GameState.BestWordFlash?
-
-    var body: some View {
-        VStack {
-            Spacer()
-            VStack(spacing: 6) {
-                if let sub = submitted {
-                    SubmittedWordBadge(display: sub)
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
-                }
-                if let flash = best {
-                    BestWordBadge(flash: flash)
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
-                }
-            }
-            .animation(.easeOut(duration: 0.30), value: submitted != nil)
-            .animation(.easeOut(duration: 0.30), value: best != nil)
-            .padding(.bottom, 110)
-        }
-    }
-}
-
-private struct SubmittedWordBadge: View {
-    let display: GameState.SubmittedWordDisplay
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Text(display.word)
-                .font(Constants.Fonts.rounded(15, weight: .bold))
-                .foregroundStyle(Constants.Colors.tile)
-            Text("+\(display.score)")
-                .font(Constants.Fonts.rounded(15, weight: .semibold))
-                .foregroundStyle(Constants.Colors.success)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 9)
-        .background(Constants.Colors.trayBackground, in: Capsule())
-    }
-}
+// MARK: - Best word badge (floats in below the frozen tile preview)
 
 private struct BestWordBadge: View {
     let flash: GameState.BestWordFlash

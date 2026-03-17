@@ -148,6 +148,9 @@ final class GameScene: SKScene {
             blockPhase = .idle
             return
         }
+        // Clear previous wave's frozen tile preview and best word badge as new wave arrives
+        gameState?.submittedWordDisplay = nil
+        gameState?.bestWordFlash = nil
         spawnBlock(index, at: CGPoint(x: waveLeft, y: size.height))
         blockPhase = .flyingIn(index)
         showWaveBanner(index: index)
@@ -537,29 +540,23 @@ final class GameScene: SKScene {
             flashScreen(color: UIColor(Constants.Colors.success))
             HapticManager.validWord()
             gameState?.submitWord(word: word, score: pts, waveIndex: waveIdx)
+            // Freeze the tile preview in place — GameScene owns multiplier so we set it here
+            gameState?.submittedWordDisplay = GameState.SubmittedWordDisplay(
+                word: word.uppercased(), score: pts, multiplier: multiplier
+            )
             // Bank remaining block time across future blocks
             gameState?.bankRemainingTime(blockIndex: waveIdx)
             gameState?.currentSelection = ""
             trailNode.path = nil
             selectionPath.removeAll()
 
-            // Best word flash — solve grid on background thread
+            // Best word — solve on background thread; cleared when next wave starts or round ends
             let flatGrid = challengeWaveLetters[waveIdx]
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                guard let best = WaveGridSolver.bestWord(in: flatGrid) else {
-                    // No best word found — still clear the submitted word display after a delay
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-                        self?.gameState?.submittedWordDisplay = nil
-                    }
-                    return
-                }
+                guard let best = WaveGridSolver.bestWord(in: flatGrid) else { return }
                 DispatchQueue.main.async { [weak self] in
                     self?.gameState?.bestWordFlash =
                         GameState.BestWordFlash(word: best.word, score: best.score)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
-                        self?.gameState?.bestWordFlash = nil
-                        self?.gameState?.submittedWordDisplay = nil
-                    }
                 }
             }
 
