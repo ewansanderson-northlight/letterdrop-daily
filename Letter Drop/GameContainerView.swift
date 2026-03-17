@@ -28,11 +28,13 @@ struct GamePlayView: View {
                     .allowsHitTesting(false)
             }
 
-            // Best word flash
-            if let flash = gameState.bestWordFlash {
-                BestWordOverlay(flash: flash)
-                    .transition(.opacity)
-                    .allowsHitTesting(false)
+            // Submitted word + best word reveal stacked at bottom
+            if gameState.submittedWordDisplay != nil || gameState.bestWordFlash != nil {
+                SubmittedAndBestWordOverlay(
+                    submitted: gameState.submittedWordDisplay,
+                    best:      gameState.bestWordFlash
+                )
+                .allowsHitTesting(false)
             }
 
             // Ready-Set-Go countdown
@@ -77,7 +79,8 @@ struct GamePlayView: View {
             }
         }
         .animation(.easeInOut(duration: 0.18), value: gameState.showMissFeedback)
-        .animation(.easeOut(duration: 0.55), value: gameState.bestWordFlash != nil)
+        .animation(.easeOut(duration: 0.45), value: gameState.submittedWordDisplay != nil)
+        .animation(.easeOut(duration: 0.45), value: gameState.bestWordFlash != nil)
         .animation(.easeOut(duration: 0.25),   value: gameState.countdownValue)
         .animation(.spring(response: 0.28, dampingFraction: 0.75),
                    value: gameState.currentSelection.isEmpty)
@@ -139,30 +142,68 @@ private struct CountdownOverlay: View {
     }
 }
 
-// MARK: - Best word flash overlay
+// MARK: - Submitted word + best word stacked overlay
 
-private struct BestWordOverlay: View {
-    let flash: GameState.BestWordFlash
+private struct SubmittedAndBestWordOverlay: View {
+    let submitted: GameState.SubmittedWordDisplay?
+    let best:      GameState.BestWordFlash?
 
     var body: some View {
         VStack {
             Spacer()
-            HStack(spacing: 5) {
-                Text("Best was:")
-                    .font(Constants.Fonts.rounded(13, weight: .regular))
-                    .foregroundStyle(Constants.Colors.tile.opacity(0.65))
-                Text(flash.word)
-                    .font(Constants.Fonts.rounded(13, weight: .bold))
-                    .foregroundStyle(Constants.Colors.tile)
-                Text("+\(flash.score)")
-                    .font(Constants.Fonts.rounded(13, weight: .semibold))
-                    .foregroundStyle(Constants.Colors.gold)
+            VStack(spacing: 6) {
+                if let sub = submitted {
+                    SubmittedWordBadge(display: sub)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
+                if let flash = best {
+                    BestWordBadge(flash: flash)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
-            .background(Constants.Colors.trayBackground, in: Capsule())
+            .animation(.easeOut(duration: 0.30), value: submitted != nil)
+            .animation(.easeOut(duration: 0.30), value: best != nil)
             .padding(.bottom, 110)
         }
+    }
+}
+
+private struct SubmittedWordBadge: View {
+    let display: GameState.SubmittedWordDisplay
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(display.word)
+                .font(Constants.Fonts.rounded(15, weight: .bold))
+                .foregroundStyle(Constants.Colors.tile)
+            Text("+\(display.score)")
+                .font(Constants.Fonts.rounded(15, weight: .semibold))
+                .foregroundStyle(Constants.Colors.success)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+        .background(Constants.Colors.trayBackground, in: Capsule())
+    }
+}
+
+private struct BestWordBadge: View {
+    let flash: GameState.BestWordFlash
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Text("Best was:")
+                .font(Constants.Fonts.rounded(13, weight: .regular))
+                .foregroundStyle(Constants.Colors.tile.opacity(0.65))
+            Text(flash.word)
+                .font(Constants.Fonts.rounded(13, weight: .bold))
+                .foregroundStyle(Constants.Colors.tile)
+            Text("+\(flash.score)")
+                .font(Constants.Fonts.rounded(13, weight: .semibold))
+                .foregroundStyle(Constants.Colors.gold)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+        .background(Constants.Colors.trayBackground, in: Capsule())
     }
 }
 

@@ -448,7 +448,20 @@ final class GameScene: SKScene {
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard isPlaying, let touch = touches.first else { return }
-        guard let coord = findTile(at: touch.location(in: self)) else { return }
+        let loc = touch.location(in: self)
+        let prev = touch.previousLocation(in: self)
+        let dx = loc.x - prev.x
+        let dy = loc.y - prev.y
+        let moveDist = hypot(dx, dy)
+        // Detect diagonal intent: angle 25–65° from horizontal in any quadrant
+        let isDiagonal: Bool
+        if moveDist > 2 {
+            let angleDeg = Double(atan2(abs(dy), abs(dx))) * 180 / .pi
+            isDiagonal = angleDeg >= 25 && angleDeg <= 65
+        } else {
+            isDiagonal = false
+        }
+        guard let coord = findTile(at: loc, isDiagonal: isDiagonal) else { return }
         guard !selectionPath.isEmpty else { return }
         guard let firstWave = selectionPath.first?.waveIndex,
               coord.waveIndex == firstWave,
@@ -533,12 +546,19 @@ final class GameScene: SKScene {
             // Best word flash — solve grid on background thread
             let flatGrid = challengeWaveLetters[waveIdx]
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                guard let best = WaveGridSolver.bestWord(in: flatGrid) else { return }
+                guard let best = WaveGridSolver.bestWord(in: flatGrid) else {
+                    // No best word found — still clear the submitted word display after a delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                        self?.gameState?.submittedWordDisplay = nil
+                    }
+                    return
+                }
                 DispatchQueue.main.async { [weak self] in
                     self?.gameState?.bestWordFlash =
                         GameState.BestWordFlash(word: best.word, score: best.score)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
                         self?.gameState?.bestWordFlash = nil
+                        self?.gameState?.submittedWordDisplay = nil
                     }
                 }
             }
@@ -586,9 +606,10 @@ final class GameScene: SKScene {
         !(a.row == b.row && a.col == b.col)
     }
 
-    private func findTile(at scenePoint: CGPoint) -> TileCoord? {
+    /// `isDiagonal` widens the hit zone by ~25% when gesture angle is 25–65° from horizontal.
+    private func findTile(at scenePoint: CGPoint, isDiagonal: Bool = false) -> TileCoord? {
         var best: (coord: TileCoord, dist: CGFloat)? = nil
-        let hitRadius = tileSize * 0.68
+        let hitRadius = tileSize * (isDiagonal ? 0.85 : 0.68)
 
         for (_, waveNode) in activeWaveNodes {
             let local = convert(scenePoint, to: waveNode)

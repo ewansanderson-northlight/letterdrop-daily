@@ -151,6 +151,13 @@ final class GameState: ObservableObject {
     }
     @Published var bestWordFlash: BestWordFlash? = nil
 
+    // MARK: - Submitted word display (shown while best word reveals)
+    struct SubmittedWordDisplay: Equatable {
+        let word: String
+        let score: Int
+    }
+    @Published var submittedWordDisplay: SubmittedWordDisplay? = nil
+
     // MARK: - Miss feedback (#7)
     @Published var showMissFeedback = false
 
@@ -209,6 +216,57 @@ final class GameState: ObservableObject {
     /// Streak 0 or 1 → 1×, streak 2 → 2×, streak 3 → 4×, 4 → 8×, 5 → 16×, 6 → 32×
     var currentMultiplier: Int { max(1, 1 << max(0, consecutiveSolves - 1)) }
 
+    // MARK: - Streak tracking (letterdrop_streak in UserDefaults as JSON)
+
+    struct StreakData: Codable {
+        var lastPlayedDate: String
+        var currentStreak: Int
+        var bestStreak: Int
+    }
+
+    @Published var currentStreak: Int = 0
+    @Published var bestStreak: Int = 0
+
+    private static let streakKey = "letterdrop_streak"
+
+    private func loadStreak() {
+        guard let data = UserDefaults.standard.data(forKey: Self.streakKey),
+              let streak = try? JSONDecoder().decode(StreakData.self, from: data)
+        else { return }
+        currentStreak = streak.currentStreak
+        bestStreak    = streak.bestStreak
+    }
+
+    private func updateStreak(todayStr: String) {
+        guard let data = UserDefaults.standard.data(forKey: Self.streakKey),
+              let existing = try? JSONDecoder().decode(StreakData.self, from: data)
+        else {
+            // First game ever — start streak at 1
+            saveStreak(StreakData(lastPlayedDate: todayStr, currentStreak: 1, bestStreak: 1))
+            return
+        }
+        // Already updated for today — no change
+        if existing.lastPlayedDate == todayStr { return }
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())
+                            .flatMap { formatter.string(from: $0) }
+
+        let newStreak = existing.lastPlayedDate == yesterday
+            ? existing.currentStreak + 1
+            : 1
+        let newBest = max(existing.bestStreak, newStreak)
+        saveStreak(StreakData(lastPlayedDate: todayStr, currentStreak: newStreak, bestStreak: newBest))
+    }
+
+    private func saveStreak(_ data: StreakData) {
+        guard let encoded = try? JSONEncoder().encode(data) else { return }
+        UserDefaults.standard.set(encoded, forKey: Self.streakKey)
+        currentStreak = data.currentStreak
+        bestStreak    = data.bestStreak
+    }
+
     // MARK: - Persistent stats (UserDefaults-backed)
     @Published var bestScore: Int = UserDefaults.standard.integer(forKey: "bestScore") {
         didSet { UserDefaults.standard.set(bestScore, forKey: "bestScore") }
@@ -252,6 +310,7 @@ final class GameState: ObservableObject {
     // MARK: - Init
     init() {
         checkPlayedToday()
+        loadStreak()
         fetchDailyChallenge()
     }
 
@@ -323,11 +382,14 @@ final class GameState: ObservableObject {
         countdownGeneration += 1    // cancel any pending countdown
         countdownValue = nil
         currentSelection = ""
+        submittedWordDisplay = nil
+        bestWordFlash = nil
         phase = .menu
     }
 
     func submitWord(word: String, score wordScore: Int, waveIndex: Int) {
         foundWords.append(FoundWord(word: word.uppercased(), score: wordScore, waveIndex: waveIndex))
+        submittedWordDisplay = SubmittedWordDisplay(word: word.uppercased(), score: wordScore)
         score += wordScore
         totalWordsCompleted += 1
         let oldMultiplier = currentMultiplier
@@ -367,8 +429,10 @@ final class GameState: ObservableObject {
     }
 
     private func markPlayedToday() {
-        UserDefaults.standard.set(todayString(), forKey: Self.lastPlayedKey)
+        let today = todayString()
+        UserDefaults.standard.set(today, forKey: Self.lastPlayedKey)
         hasPlayedToday = true
+        updateStreak(todayStr: today)
     }
 
     private func todayString() -> String {
