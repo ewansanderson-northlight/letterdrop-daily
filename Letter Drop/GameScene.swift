@@ -467,8 +467,22 @@ final class GameScene: SKScene {
         guard let coord = findTile(at: loc, isDiagonal: isDiagonal) else { return }
         guard !selectionPath.isEmpty else { return }
         guard let firstWave = selectionPath.first?.waveIndex,
-              coord.waveIndex == firstWave,
-              !selectionPath.contains(coord),
+              coord.waveIndex == firstWave
+        else { return }
+
+        // Backtrack: finger re-entered the second-to-last tile — peel the last tile off.
+        if selectionPath.count >= 2 && coord == selectionPath[selectionPath.count - 2] {
+            let removed = selectionPath.removeLast()
+            activeWaveNodes[removed.waveIndex]?.tile(at: removed.row, col: removed.col)?.cancelGhostTrail()
+            activeWaveNodes[removed.waveIndex]?.setSelected(false, at: removed.row, col: removed.col)
+            gameState?.currentSelection = currentWord()
+            HapticManager.selectTile()
+            updateTrail()
+            return
+        }
+
+        // Forward selection: must be an unvisited adjacent tile.
+        guard !selectionPath.contains(coord),
               let last = selectionPath.last,
               areAdjacent(last, coord)
         else { return }

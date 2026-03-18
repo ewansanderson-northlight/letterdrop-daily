@@ -24,8 +24,6 @@ struct ScoreCardView: View {
 
     var body: some View {
         ZStack {
-            Constants.Colors.background
-
             VStack(spacing: 0) {
                 Spacer()
 
@@ -102,6 +100,7 @@ struct ScoreCardView: View {
                     .padding(.bottom, 56)
             }
         }
+        .background(Constants.Colors.background)
         .frame(width: 1080, height: 1080)
     }
 }
