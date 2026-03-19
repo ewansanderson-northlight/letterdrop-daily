@@ -301,6 +301,7 @@ struct MainMenuView: View {
                 MenuSecondaryButton(title: "How to Play", icon: "questionmark.circle",
                                     highlighted: howToPlayHighlighted) {
                     showHowToPlay = true
+                    AnalyticsManager.shared.track(.howToPlayViewed)
                 }
                 MenuSecondaryButton(title: "Stats", icon: "chart.bar",
                                     highlighted: statsHighlighted) {

@@ -188,8 +188,17 @@ final class GameState: ObservableObject {
                 return total + (pair.element?.score ?? 0) * mult
             }
             DispatchQueue.main.async { [weak self] in
-                self?.waveOptimalWords    = optima
-                self?.theoreticalMaxScore = maxScore
+                guard let self else { return }
+                self.waveOptimalWords    = optima
+                self.theoreticalMaxScore = maxScore
+                AnalyticsManager.shared.track(.puzzleCompleted(
+                    date:        self.todayString(),
+                    score:       self.score,
+                    maxScore:    maxScore,
+                    wordsFound:  self.foundWords.count,
+                    bestWord:    self.bestWord,
+                    wavesScored: self.foundWords.count
+                ))
             }
         }
     }
@@ -264,8 +273,13 @@ final class GameState: ObservableObject {
     private func saveStreak(_ data: StreakData) {
         guard let encoded = try? JSONEncoder().encode(data) else { return }
         UserDefaults.standard.set(encoded, forKey: Self.streakKey)
+        let isNewBest = data.currentStreak > bestStreak  // compare before updating
         currentStreak = data.currentStreak
         bestStreak    = data.bestStreak
+        AnalyticsManager.shared.track(.streakUpdated(
+            currentStreak: data.currentStreak,
+            isNewBest:     isNewBest
+        ))
     }
 
     // MARK: - Persistent stats (UserDefaults-backed)
@@ -363,6 +377,7 @@ final class GameState: ObservableObject {
         currentWaveIndex    = 0
         phase = .playing
         markPlayedToday()
+        AnalyticsManager.shared.track(.puzzleStarted(date: todayString()))
         startCountdown()    // GameScene starts block 0 timer after GO
     }
 

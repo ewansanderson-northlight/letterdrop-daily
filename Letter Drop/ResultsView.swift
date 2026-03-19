@@ -346,6 +346,8 @@ private struct CTASection: View {
                 ) {
                     shareImage = img
                     showImageShare = true
+                    let dateFmt = DateFormatter(); dateFmt.dateFormat = "yyyy-MM-dd"
+                    AnalyticsManager.shared.track(.resultShared(date: dateFmt.string(from: Date())))
                 }
             } label: {
                 HStack(spacing: 8) {
@@ -369,7 +371,11 @@ private struct CTASection: View {
             }
 
             // Challenge Your Friends → text + URL
-            Button { showChallengeShare = true } label: {
+            Button {
+                showChallengeShare = true
+                let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
+                AnalyticsManager.shared.track(.resultShared(date: fmt.string(from: Date())))
+            } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "person.2")
                         .font(.system(size: 15, weight: .semibold))

@@ -49,6 +49,15 @@ struct RootView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: gameState.phase)
+        .onReceive(NotificationCenter.default.publisher(
+            for: UIApplication.didEnterBackgroundNotification)
+        ) { _ in
+            guard gameState.phase == .playing else { return }
+            AnalyticsManager.shared.track(.puzzleAbandoned(
+                score:      gameState.score,
+                waveIndex:  gameState.currentWaveIndex + 1
+            ))
+        }
     }
 }
 

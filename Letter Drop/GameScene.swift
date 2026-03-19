@@ -57,6 +57,12 @@ final class GameScene: SKScene {
     private var trailNode     : SKShapeNode!
     private var flashOverlay  : SKSpriteNode!
 
+    // MARK: - Demo swipe (countdown tutorial)
+    private var demoSwipeCursor: SKShapeNode?
+    private var demoSwipeTrail:  SKShapeNode?
+    /// Diagonal path bottom-left → upper-right used for the countdown tutorial.
+    private static let demoPath: [(row: Int, col: Int)] = [(4,0),(3,1),(2,2),(1,3)]
+
     // MARK: - Geometry (set in startGame)
     private var tileSize  : CGFloat = 0
     private var waveWidth : CGFloat = 0
@@ -128,9 +134,15 @@ final class GameScene: SKScene {
 
         // Pre-position block 0 at play zone so the player sees it during 3-2-1-GO
         spawnBlock(0, at: CGPoint(x: waveLeft, y: playY))
+
+        // Show a demo swipe during the countdown to teach the mechanic passively
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { [weak self] in
+            self?.playDemoSwipe()
+        }
     }
 
     func stopGame() {
+        cancelDemoSwipe()
         blockPhase = .idle
         for (_, node) in activeWaveNodes { node.removeFromParent() }
         activeWaveNodes.removeAll()
@@ -246,6 +258,7 @@ final class GameScene: SKScene {
         case .waitingForCountdown:
             // Countdown finished → start block 0 timer and animate tiles in
             if gameState?.countdownValue == nil {
+                cancelDemoSwipe()
                 activeWaveNodes[0]?.animateIn()
                 showWaveBanner(index: 0)
                 blockPhase = .playing(0)
@@ -617,10 +630,13 @@ final class GameScene: SKScene {
         !(a.row == b.row && a.col == b.col)
     }
 
-    /// `isDiagonal` widens the hit zone by ~25% when gesture angle is 25–65° from horizontal.
+    /// Hit test is a circle centred on each tile.
+    /// Straight swipes (horizontal/vertical) use a generous 0.85 radius — no problem there.
+    /// Diagonal swipes tighten to 0.65 so the finger must pass near the letter centre;
+    /// this prevents corner clips from accidentally registering an adjacent tile.
     private func findTile(at scenePoint: CGPoint, isDiagonal: Bool = false) -> TileCoord? {
         var best: (coord: TileCoord, dist: CGFloat)? = nil
-        let hitRadius = tileSize * (isDiagonal ? 0.85 : 0.68)
+        let hitRadius = tileSize * (isDiagonal ? 0.65 : 0.85)
 
         for (_, waveNode) in activeWaveNodes {
             let local = convert(scenePoint, to: waveNode)
@@ -660,6 +676,115 @@ final class GameScene: SKScene {
         let pad: CGFloat = 28
         return local.x >= -pad && local.x <= waveNode.waveWidth  + pad &&
                local.y >= -pad && local.y <= waveNode.waveHeight + pad
+    }
+
+    // MARK: - Demo swipe
+
+    /// Plays a single animated swipe across 4 diagonal tiles during the 3-2-1 countdown.
+    /// Uses the same gold trail / tile-highlight style as a real swipe so players learn the
+    /// mechanic passively before their first touch. Pure visual — does not affect selectionPath.
+    private func playDemoSwipe() {
+        guard let waveNode = activeWaveNodes[0] else { return }
+        let path = Self.demoPath
+
+        let positions: [CGPoint] = path.compactMap { (r, c) in
+            guard let tile = waveNode.tile(at: r, col: c) else { return nil }
+            return convert(tile.position, from: waveNode)
+        }
+        guard positions.count == path.count else { return }
+
+        // Trail line — identical style to the live swipe trail
+        let trail = SKShapeNode()
+        trail.strokeColor = UIColor(Constants.Colors.gold).withAlphaComponent(0.85)
+        trail.lineWidth   = 4.5
+        trail.lineCap     = .round
+        trail.lineJoin    = .round
+        trail.zPosition   = 29   // just below the real trail (zPos 30)
+        trail.alpha       = 0
+        addChild(trail)
+        demoSwipeTrail = trail
+
+        // Soft gold finger-cursor dot
+        let cursor = SKShapeNode(circleOfRadius: 13)
+        cursor.fillColor   = UIColor(Constants.Colors.gold).withAlphaComponent(0.55)
+        cursor.strokeColor = UIColor(Constants.Colors.gold).withAlphaComponent(0.80)
+        cursor.lineWidth   = 2.0
+        cursor.glowWidth   = 10
+        cursor.zPosition   = 35
+        cursor.alpha       = 0
+        cursor.position    = positions[0]
+        addChild(cursor)
+        demoSwipeCursor = cursor
+
+        let stepDur: TimeInterval = 0.40
+        var seq: [SKAction] = []
+
+        // 1. Wait for the board to settle after spawning
+        seq.append(.wait(forDuration: 0.45))
+
+        // 2. Appear at tile 0: show trail start + select first tile, fade cursor in
+        seq.append(.run { [weak waveNode, weak trail] in
+            waveNode?.setSelected(true, at: path[0].row, col: path[0].col)
+            let p = CGMutablePath(); p.move(to: positions[0])
+            trail?.path  = p
+            trail?.alpha = 0.85
+        })
+        seq.append(.fadeIn(withDuration: 0.15))
+        seq.append(.wait(forDuration: 0.10))
+
+        // 3. Sweep cursor through tiles 1–3, extending trail and highlighting each tile
+        for i in 1..<positions.count {
+            let destPos   = positions[i]
+            let destCoord = path[i]
+            let pathSoFar = Array(positions[0...i])
+
+            seq.append(.group([
+                .move(to: destPos, duration: stepDur),
+                .run { [weak waveNode, weak trail] in
+                    waveNode?.setSelected(true, at: destCoord.row, col: destCoord.col)
+                    let p = CGMutablePath()
+                    pathSoFar.enumerated().forEach { idx, pt in
+                        idx == 0 ? p.move(to: pt) : p.addLine(to: pt)
+                    }
+                    trail?.path = p
+                }
+            ]))
+        }
+
+        // 4. Brief pause at end of swipe
+        seq.append(.wait(forDuration: 0.28))
+
+        // 5. Fade out — trail and tile highlights clear simultaneously with cursor
+        seq.append(.run { [weak trail, weak waveNode] in
+            trail?.run(.fadeOut(withDuration: 0.50))
+            for coord in path { waveNode?.setSelected(false, at: coord.row, col: coord.col) }
+        })
+        seq.append(.fadeOut(withDuration: 0.50))
+
+        // 6. Cleanup
+        seq.append(.run { [weak self, weak cursor, weak trail] in
+            cursor?.removeFromParent()
+            trail?.removeFromParent()
+            if self?.demoSwipeCursor === cursor { self?.demoSwipeCursor = nil }
+            if self?.demoSwipeTrail  === trail  { self?.demoSwipeTrail  = nil }
+        })
+
+        cursor.run(.sequence(seq), withKey: "demoSwipe")
+    }
+
+    /// Immediately stops and removes any in-progress demo swipe, resetting tile highlights.
+    private func cancelDemoSwipe() {
+        demoSwipeCursor?.removeAllActions()
+        demoSwipeCursor?.removeFromParent()
+        demoSwipeCursor = nil
+        demoSwipeTrail?.removeFromParent()
+        demoSwipeTrail = nil
+        // Un-highlight demo tiles in case the animation was mid-flight
+        if let waveNode = activeWaveNodes[0] {
+            for coord in Self.demoPath {
+                waveNode.setSelected(false, at: coord.row, col: coord.col)
+            }
+        }
     }
 }
 
