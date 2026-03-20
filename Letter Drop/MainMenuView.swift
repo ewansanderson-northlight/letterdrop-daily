@@ -476,69 +476,122 @@ private struct MenuPrimaryButtonStyle: ButtonStyle {
 
 // MARK: - Background drifting 5×5 grids
 
-private struct MenuBackground: View {
-    private let grids: [(CGFloat, Double, CGFloat)] = [
-        (0.15, 16.0, 0.0),
-        (0.48, 12.0, 0.55),
-        (0.78, 18.0, 0.25),
-        (0.93, 10.5, 0.75),
-    ]
+// MARK: - Background (falling grid watermark)
 
+private struct MenuBackground: View {
     var body: some View {
         GeometryReader { geo in
-            ForEach(grids.indices, id: \.self) { i in
-                let (xFrac, duration, startFrac) = grids[i]
-                DriftingGridSilhouette(
-                    x:        geo.size.width * xFrac,
-                    duration: duration,
-                    startY:   -60 + (geo.size.height + 120) * startFrac,
-                    endY:     geo.size.height + 60
-                )
-            }
+            FallingGridBlock(screenSize: geo.size)
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
     }
 }
 
-private struct DriftingGridSilhouette: View {
-    let x: CGFloat
-    let duration: Double
-    let startY: CGFloat
-    let endY: CGFloat
+/// A single 5×5 ghost grid that falls continuously down the centre of the screen.
+/// Tile dimensions match the in-game formula exactly. The inter-block gap is
+/// achieved geometrically: the block starts far enough above the viewport that
+/// it spends `gapDuration` seconds invisible before entering from the top —
+/// so one constant-speed `.repeatForever` animation handles everything.
+private struct FallingGridBlock: View {
 
-    private let cellSize: CGFloat = 9
-    private let cellGap:  CGFloat = 2
-    private let n = 5
+    let screenSize: CGSize
 
-    @State private var y: CGFloat
+    @Environment(\.scenePhase) private var scenePhase
 
-    init(x: CGFloat, duration: Double, startY: CGFloat, endY: CGFloat) {
-        self.x = x; self.duration = duration; self.startY = startY; self.endY = endY
-        _y = State(initialValue: startY)
+    // MARK: Geometry (matches GameScene's tile sizing formula)
+    private let tileSize  : CGFloat
+    private let blockSide : CGFloat   // width == height (square 5×5 grid)
+
+    // MARK: Timing
+    private let fallDuration : Double = 9.0   // seconds to traverse screen top→bottom
+    private let gapDuration  : Double = 2.5   // seconds block is hidden above screen
+    private var totalDuration: Double { fallDuration + gapDuration }
+
+    // MARK: Y positions (block centre)
+    private let startY: CGFloat   // well above screen — block is invisible here
+    private let endY  : CGFloat   // just below screen
+
+    // MARK: Fade zone (screen-space fractions, top→bottom)
+    // Starts where the block reaches the top of the stat cards (~59% down),
+    // fades to fully transparent over 175 pt — roughly Play button level.
+    private var fadeTopFrac: Double { 0.59 }
+    private var fadeBotFrac: Double { fadeTopFrac + 175 / Double(screenSize.height) }
+
+    @State private var offsetY: CGFloat
+
+    init(screenSize: CGSize) {
+        self.screenSize = screenSize
+
+        let gap    = Constants.Game.tileGap
+        let margin = Constants.Game.tileMargin
+        let ts     = (screenSize.width - 2 * margin - 4 * gap) / 5
+        let side   = 5 * ts + 4 * gap
+        tileSize  = ts
+        blockSide = side
+
+        // Speed so the visible traversal takes exactly `fallDuration` seconds.
+        // The block also travels `gapDuration` seconds of distance while off-screen
+        // above, which creates the pause between repetitions with zero extra timers.
+        let speed     = Double(screenSize.height + side) / fallDuration
+        let gapTravel = CGFloat(speed * gapDuration)
+        let sy        = -(side / 2) - gapTravel
+
+        startY  = sy
+        endY    = screenSize.height + side / 2
+        _offsetY = State(initialValue: sy)
     }
 
     var body: some View {
-        VStack(spacing: cellGap) {
-            ForEach(0..<n, id: \.self) { _ in
-                HStack(spacing: cellGap) {
-                    ForEach(0..<n, id: \.self) { _ in
-                        RoundedRectangle(cornerRadius: 2)
+        VStack(spacing: Constants.Game.tileGap) {
+            ForEach(0..<5, id: \.self) { _ in
+                HStack(spacing: Constants.Game.tileGap) {
+                    ForEach(0..<5, id: \.self) { _ in
+                        RoundedRectangle(cornerRadius: Constants.Game.tileCorner)
                             .fill(Constants.Colors.tile)
-                            .frame(width: cellSize, height: cellSize)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: Constants.Game.tileCorner)
+                                    .strokeBorder(Constants.Colors.tile, lineWidth: 1)
+                            )
+                            .frame(width: tileSize, height: tileSize)
                     }
                 }
             }
         }
-        .opacity(0.07)
-        .position(x: x, y: y)
-        .onAppear {
-            withAnimation(
-                .linear(duration: duration * (1.0 - Double((startY + 60) / (endY + 60))))
-                .repeatForever(autoreverses: false)
-            ) {
-                y = endY
-            }
+        .opacity(0.22)
+        .position(x: screenSize.width / 2, y: offsetY)
+        // Screen-space gradient mask: opaque above the stat cards, fades to
+        // fully transparent ~175 pt lower (≈ Play button level).
+        // Because .position() makes the view's layout frame equal the full
+        // parent frame, this gradient is fixed in screen coordinates — the
+        // block fades out as it descends into the lower UI zone regardless
+        // of where it currently sits in its fall path.
+        .mask(
+            LinearGradient(
+                stops: [
+                    .init(color: .white, location: 0),
+                    .init(color: .white, location: fadeTopFrac),
+                    .init(color: .clear,  location: fadeBotFrac),
+                    .init(color: .clear,  location: 1),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .onAppear { beginFall() }
+        .onChange(of: scenePhase) { _, phase in
+            // Restart cleanly from off-screen when returning from background
+            if phase == .active { beginFall() }
+        }
+    }
+
+    /// Snaps the block to `startY` without animation, then starts the linear fall.
+    private func beginFall() {
+        var snap = Transaction(animation: nil)
+        snap.disablesAnimations = true
+        withTransaction(snap) { offsetY = startY }
+        withAnimation(.linear(duration: totalDuration).repeatForever(autoreverses: false)) {
+            offsetY = endY
         }
     }
 }

@@ -32,6 +32,23 @@ enum HapticManager {
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
     }
 
+    // MARK: - Timer tension spikes
+
+    /// Light tick — block timer reaches 10 seconds.
+    static func timerWarning() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    /// Medium pulse — block timer reaches 5 seconds.
+    static func timerUrgent() {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    }
+
+    /// Heavy thud — block timer reaches 3, 2, or 1 second.
+    static func timerCritical() {
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+    }
+
     // MARK: - Legacy (kept for LetterTile / old scene if still referenced)
 
     static func collectLetter() { selectTile() }

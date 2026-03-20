@@ -14,61 +14,72 @@ struct ResultsView: View {
     @State private var displayScore  = 0
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 0) {
+        ZStack {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
 
-                ResultsHeader(revealed: revealed)
-                    .padding(.bottom, 32)
+                    ResultsHeader(revealed: revealed)
+                        .padding(.bottom, 32)
 
-                // ── Score card ───────────────────────────────────────────────
-                ScoreCard(displayScore: displayScore,
-                          maxScore: gameState.theoreticalMaxScore,
-                          revealed: revealed)
-                    .padding(.bottom, 28)
+                    // ── Score card ───────────────────────────────────────────────
+                    ScoreCard(displayScore: displayScore,
+                              maxScore: gameState.theoreticalMaxScore,
+                              revealed: revealed)
+                        .padding(.bottom, 28)
 
-                // ── Word grid ────────────────────────────────────────────────
-                SectionLabel(title: "WORDS FOUND")
-                    .padding(.bottom, 10)
-                    .opacity(revealed ? 1 : 0)
-                    .animation(.easeOut(duration: 0.3).delay(0.15), value: revealed)
-
-                WaveResultsGrid(foundWords: gameState.foundWords,
-                               optimalWords: gameState.waveOptimalWords,
-                               revealed: revealed)
-                    .padding(.bottom, 28)
-
-                // ── Word stats ───────────────────────────────────────────────
-                if !gameState.foundWords.isEmpty {
-                    SectionLabel(title: "HIGHLIGHTS")
+                    // ── Word grid ────────────────────────────────────────────────
+                    SectionLabel(title: "WORDS FOUND")
                         .padding(.bottom, 10)
                         .opacity(revealed ? 1 : 0)
-                        .animation(.easeOut(duration: 0.3).delay(0.40), value: revealed)
+                        .animation(.easeOut(duration: 0.3).delay(0.15), value: revealed)
 
-                    WordHighlightsCard(
-                        shortest: gameState.shortestFoundWord,
-                        longest:  gameState.longestFoundWord,
-                        revealed: revealed
-                    )
-                    .padding(.bottom, 28)
+                    WaveResultsGrid(foundWords: gameState.foundWords,
+                                   optimalWords: gameState.waveOptimalWords,
+                                   revealed: revealed)
+                        .padding(.bottom, 28)
+
+                    // ── Word stats ───────────────────────────────────────────────
+                    if !gameState.foundWords.isEmpty {
+                        SectionLabel(title: "HIGHLIGHTS")
+                            .padding(.bottom, 10)
+                            .opacity(revealed ? 1 : 0)
+                            .animation(.easeOut(duration: 0.3).delay(0.40), value: revealed)
+
+                        WordHighlightsCard(
+                            shortest: gameState.shortestFoundWord,
+                            longest:  gameState.longestFoundWord,
+                            revealed: revealed
+                        )
+                        .padding(.bottom, 28)
+                    }
+
+                    // ── CTA buttons ──────────────────────────────────────────────
+                    CTASection()
+                        .opacity(revealed ? 1 : 0)
+                        .offset(y: revealed ? 0 : 16)
+                        .animation(.spring(response: 0.4, dampingFraction: 0.75).delay(ctaDelay),
+                                   value: revealed)
                 }
+                .padding(.horizontal, 24)
+                .padding(.top, 64)
+                .padding(.bottom, 52)
+            }
+            .onAppear {
+                let delay: Double = gameState.showPerfectRoundCelebration ? 2.5 : 0.15
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                    revealed = true
+                }
+                scheduleScoreCountUp()
+            }
 
-                // ── CTA buttons ──────────────────────────────────────────────
-                CTASection()
-                    .opacity(revealed ? 1 : 0)
-                    .offset(y: revealed ? 0 : 16)
-                    .animation(.spring(response: 0.4, dampingFraction: 0.75).delay(ctaDelay),
-                               value: revealed)
+            // Perfect round celebration overlay — fades away before results reveal
+            if gameState.showPerfectRoundCelebration {
+                PerfectRoundCelebrationOverlay()
+                    .transition(.opacity)
+                    .allowsHitTesting(false)
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 64)
-            .padding(.bottom, 52)
         }
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                revealed = true
-            }
-            scheduleScoreCountUp()
-        }
+        .animation(.easeInOut(duration: 0.45), value: gameState.showPerfectRoundCelebration)
     }
 
     // MARK: - Helpers
@@ -427,6 +438,36 @@ private struct SectionLabel: View {
             .foregroundStyle(Constants.Colors.tile.opacity(0.4))
             .tracking(2)
             .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - Perfect round celebration overlay
+
+private struct PerfectRoundCelebrationOverlay: View {
+    @State private var scale:   CGFloat = 0.5
+    @State private var opacity: Double  = 0
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.60).ignoresSafeArea()
+
+            VStack(spacing: 14) {
+                Text("PERFECT ROUND")
+                    .font(Constants.Fonts.rounded(13, weight: .semibold))
+                    .foregroundStyle(Constants.Colors.tile.opacity(0.65))
+                    .tracking(3)
+                Text("+200")
+                    .font(Constants.Fonts.rounded(88, weight: .bold))
+                    .foregroundStyle(Constants.Colors.scoreGold)
+            }
+            .scaleEffect(scale)
+            .opacity(opacity)
+            .onAppear {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.62)) {
+                    scale = 1.0; opacity = 1.0
+                }
+            }
+        }
     }
 }
 

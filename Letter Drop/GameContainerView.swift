@@ -38,14 +38,14 @@ struct GamePlayView: View {
             let previewWord = !gameState.currentSelection.isEmpty
                 ? gameState.currentSelection
                 : (gameState.submittedWordDisplay?.word ?? "")
-            let previewMultiplier = !gameState.currentSelection.isEmpty
-                ? gameState.currentMultiplier
-                : (gameState.submittedWordDisplay?.multiplier ?? 1)
+            let previewStreakBonus = !gameState.currentSelection.isEmpty
+                ? gameState.currentStreakBonus
+                : (gameState.submittedWordDisplay?.streakBonus ?? 0)
 
             if !previewWord.isEmpty {
                 WordPreviewOverlay(
                     word:           previewWord,
-                    multiplier:     previewMultiplier,
+                    streakBonus:    previewStreakBonus,
                     blockTopUIKitY: gameState.blockTopUIKitY,
                     bestWordFlash:  gameState.currentSelection.isEmpty ? gameState.bestWordFlash : nil
                 )
@@ -70,12 +70,6 @@ struct GamePlayView: View {
                     .allowsHitTesting(false)
             }
 
-            // Combo boost flash — centre screen on multiplier increase
-            if let boost = gameState.comboBoostFlash {
-                ComboBoostOverlay(multiplier: boost)
-                    .transition(.opacity.combined(with: .scale(scale: 0.75)))
-                    .allowsHitTesting(false)
-            }
         }
         .animation(.easeInOut(duration: 0.18), value: gameState.showMissFeedback)
         .animation(.easeOut(duration: 0.25),   value: gameState.countdownValue)
@@ -87,8 +81,6 @@ struct GamePlayView: View {
                    value: gameState.isSlowMoActive)
         .animation(.spring(response: 0.28, dampingFraction: 0.70),
                    value: gameState.waveBanner != nil)
-        .animation(.spring(response: 0.30, dampingFraction: 0.65),
-                   value: gameState.comboBoostFlash != nil)
     }
 }
 
@@ -98,7 +90,7 @@ struct GamePlayView: View {
 
 private struct WordPreviewOverlay: View {
     let word          : String
-    let multiplier    : Int
+    let streakBonus   : Int
     let blockTopUIKitY: CGFloat
     var bestWordFlash : GameState.BestWordFlash? = nil
 
@@ -110,7 +102,7 @@ private struct WordPreviewOverlay: View {
                        ? max(140, blockTopUIKitY - 64)
                        : 280)
             VStack(spacing: 8) {
-                SelectionPreview(word: word, multiplier: multiplier)
+                SelectionPreview(word: word, streakBonus: streakBonus)
 
                 // Best word badge floats in below the frozen tile row
                 if let flash = bestWordFlash {
@@ -278,34 +270,6 @@ private struct WaveBannerOverlay: View {
     }
 }
 
-// MARK: - Combo boost overlay
-
-private struct ComboBoostOverlay: View {
-    let multiplier: Int
-
-    @State private var scale:   CGFloat = 0.6
-    @State private var opacity: Double  = 0
-
-    var body: some View {
-        VStack(spacing: 2) {
-            Text("COMBO BOOST")
-                .font(Constants.Fonts.rounded(13, weight: .semibold))
-                .foregroundStyle(Constants.Colors.tile.opacity(0.65))
-                .tracking(3)
-            Text("×\(multiplier)")
-                .font(Constants.Fonts.rounded(76, weight: .bold))
-                .foregroundStyle(Constants.Colors.gold)
-        }
-        .scaleEffect(scale)
-        .opacity(opacity)
-        .onAppear {
-            withAnimation(.spring(response: 0.30, dampingFraction: 0.62)) {
-                scale = 1.0; opacity = 1.0
-            }
-        }
-    }
-}
-
 // MARK: - Container (UIViewControllerRepresentable)
 
 struct GameContainerView: UIViewControllerRepresentable {
@@ -363,7 +327,7 @@ struct GameHUDView: View {
                     )
                     HStack {
                         Spacer()
-                        MultiplierBadge(multiplier: gameState.currentMultiplier)
+                        StreakBadge(consecutiveSolves: gameState.consecutiveSolves)
                             .padding(.trailing, 20)
                     }
                 }
@@ -451,10 +415,12 @@ private struct TimerView: View {
     private var isBank   : Bool   { phase == .banked }
     private var display  : Double { isBank ? bankedTime : blockTime }
     private var displaySeconds: Int { max(0, Int(ceil(display))) }
-    private var isWarning: Bool { phase == .block && blockTime <= 15 && blockTime > 5 }
-    private var isUrgent : Bool { phase == .block && blockTime <= 5 }
+    private var isWarning: Bool { phase == .block && blockTime <= 10 && blockTime > 3 }
+    private var isUrgent : Bool { phase == .block && blockTime <= 3 }
 
-    @State private var pulse = false
+    @State private var pulse           = false
+    @State private var spikeScale      : CGFloat = 1.0
+    @State private var firedThresholds : Set<Int> = []
 
     var body: some View {
         VStack(spacing: 2) {
@@ -473,6 +439,7 @@ private struct TimerView: View {
                             Constants.Colors.tile
             )
             .scaleEffect(pulse ? (isUrgent ? 1.12 : 1.06) : 1.0)
+            .scaleEffect(spikeScale)
             .animation(.easeInOut(duration: 0.2), value: isBank)
             .animation(.easeInOut(duration: 0.2), value: isWarning)
             .animation(.easeInOut(duration: 0.2), value: isUrgent)
@@ -506,6 +473,41 @@ private struct TimerView: View {
                 withAnimation(.default) { pulse = false }
             }
         }
+        // Reset fired set when a new block starts (phase leaves .none)
+        .onChange(of: phase) { _, newPhase in
+            if newPhase != .none { firedThresholds = [] }
+        }
+        // One-shot tension spikes — fires once per threshold per block
+        .onChange(of: blockTime) { _, newVal in
+            guard phase == .block else { return }
+            let secs = Int(ceil(newVal))
+            checkThresholds(secs)
+        }
+    }
+
+    private func checkThresholds(_ secs: Int) {
+        let entries: [(threshold: Int, peak: CGFloat, totalDuration: Double, haptic: () -> Void)] = [
+            (10, 1.10, 0.30, HapticManager.timerWarning),
+            (5,  1.15, 0.30, HapticManager.timerUrgent),
+            (3,  1.30, 0.25, HapticManager.timerCritical),
+            (2,  1.30, 0.25, HapticManager.timerCritical),
+            (1,  1.30, 0.25, HapticManager.timerCritical),
+        ]
+        for entry in entries where secs <= entry.threshold && !firedThresholds.contains(entry.threshold) {
+            firedThresholds.insert(entry.threshold)
+            fireSpike(peak: entry.peak, totalDuration: entry.totalDuration)
+            entry.haptic()
+        }
+    }
+
+    private func fireSpike(peak: CGFloat, totalDuration: Double) {
+        let riseTime = totalDuration * 0.30
+        withAnimation(.easeOut(duration: riseTime)) { spikeScale = peak }
+        DispatchQueue.main.asyncAfter(deadline: .now() + riseTime) {
+            withAnimation(.spring(response: totalDuration * 0.70, dampingFraction: 0.60)) {
+                spikeScale = 1.0
+            }
+        }
     }
 
     private func timeString(_ secs: Int) -> String {
@@ -529,34 +531,30 @@ private struct ScoreView: View {
     }
 }
 
-// MARK: - Multiplier badge
+// MARK: - Streak badge
 
-/// Shown when the player has a streak of 2+ consecutive solved waves.
-private struct MultiplierBadge: View {
-    let multiplier: Int
+/// Shown when the player has solved at least 1 wave in a row.
+private struct StreakBadge: View {
+    let consecutiveSolves: Int
 
     @State private var popped = false
 
     var body: some View {
-        if multiplier > 1 {
-            HStack(spacing: 3) {
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: 11, weight: .bold))
-                Text("×\(multiplier)")
-                    .font(Constants.Fonts.rounded(15, weight: .bold))
-            }
-            .foregroundStyle(Constants.Colors.tileText)
-            .padding(.horizontal, 9)
-            .padding(.vertical, 5)
-            .background(Constants.Colors.gold, in: Capsule())
-            .scaleEffect(popped ? 1.0 : 0.6)
-            .opacity(popped ? 1 : 0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: popped)
-            .onAppear { popped = true }
-            .onChange(of: multiplier) {
-                popped = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { popped = true }
-            }
+        if consecutiveSolves >= 1 {
+            Text("🔥 \(consecutiveSolves)")
+                .font(Constants.Fonts.rounded(15, weight: .bold))
+                .foregroundStyle(Constants.Colors.tileText)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 5)
+                .background(Constants.Colors.gold, in: Capsule())
+                .scaleEffect(popped ? 1.0 : 0.6)
+                .opacity(popped ? 1 : 0)
+                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: popped)
+                .onAppear { popped = true }
+                .onChange(of: consecutiveSolves) {
+                    popped = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { popped = true }
+                }
         }
     }
 }
@@ -592,7 +590,7 @@ private struct WaveDotsView: View {
 
 private struct SelectionPreview: View {
     let word: String
-    let multiplier: Int
+    let streakBonus: Int
 
     var body: some View {
         HStack(spacing: 4) {
@@ -608,19 +606,12 @@ private struct SelectionPreview: View {
 
             let base = ScoreCalculator.score(for: word)
             if base > 0 {
-                let boosted = base * multiplier
-                Group {
-                    if multiplier > 1 {
-                        Text("+\(boosted)  ×\(multiplier)")
-                            .foregroundStyle(Constants.Colors.gold)
-                    } else {
-                        Text("+\(base)")
-                            .foregroundStyle(Constants.Colors.gold)
-                    }
-                }
-                .font(Constants.Fonts.rounded(15, weight: .semibold))
-                .padding(.leading, 4)
-                .transition(.opacity)
+                let total = base + streakBonus
+                Text(streakBonus > 0 ? "+\(total)  🔥" : "+\(base)")
+                    .font(Constants.Fonts.rounded(15, weight: .semibold))
+                    .foregroundStyle(Constants.Colors.gold)
+                    .padding(.leading, 4)
+                    .transition(.opacity)
             }
         }
         .padding(.horizontal, 16)

@@ -396,7 +396,7 @@ final class GameScene: SKScene {
 
     // MARK: - Score pop
 
-    private func spawnScorePop(score: Int, multiplier: Int, near coords: [TileCoord]) {
+    private func spawnScorePop(score: Int, streakBonus: Int, near coords: [TileCoord]) {
         guard score > 0, !coords.isEmpty else { return }
 
         let positions: [CGPoint] = coords.compactMap { c in
@@ -410,11 +410,11 @@ final class GameScene: SKScene {
         let cx = positions.map(\.x).reduce(0, +) / CGFloat(positions.count)
         let cy = positions.map(\.y).reduce(0, +) / CGFloat(positions.count)
 
-        let text  = multiplier > 1 ? "+\(score)  ×\(multiplier)" : "+\(score)"
+        let text  = streakBonus > 0 ? "+\(score)  🔥" : "+\(score)"
         let label                     = SKLabelNode(text: text)
         label.fontName                = "SFRounded-Semibold"
-        label.fontSize                = multiplier > 1 ? 22 : 20
-        label.fontColor               = multiplier > 1
+        label.fontSize                = streakBonus > 0 ? 22 : 20
+        label.fontColor               = streakBonus > 0
                                         ? UIColor(Constants.Colors.gold)
                                         : UIColor(Constants.Colors.success)
         label.verticalAlignmentMode   = .center
@@ -553,23 +553,23 @@ final class GameScene: SKScene {
         guard word.count >= 3 else { cancelSelection(); return }
 
         if WordValidator.shared.isValid(word) {
-            let baseScore  = ScoreCalculator.score(for: word)
-            let multiplier = gameState?.currentMultiplier ?? 1
-            let pts        = baseScore * multiplier
-            let waveIdx    = selectionPath.first!.waveIndex
-            let captured   = selectionPath
+            let baseScore   = ScoreCalculator.score(for: word)
+            let streakBonus = gameState?.currentStreakBonus ?? 0
+            let pts         = baseScore + streakBonus
+            let waveIdx     = selectionPath.first!.waveIndex
+            let captured    = selectionPath
 
             for (i, coord) in captured.enumerated() {
                 activeWaveNodes[coord.waveIndex]?
                     .removeTileAnimated(at: coord.row, col: coord.col, delay: Double(i) * 0.05)
             }
-            spawnScorePop(score: pts, multiplier: multiplier, near: captured)
+            spawnScorePop(score: pts, streakBonus: streakBonus, near: captured)
             flashScreen(color: UIColor(Constants.Colors.success))
             HapticManager.validWord()
             gameState?.submitWord(word: word, score: pts, waveIndex: waveIdx)
-            // Freeze the tile preview in place — GameScene owns multiplier so we set it here
+            // Freeze the tile preview in place — GameScene owns streak bonus so we set it here
             gameState?.submittedWordDisplay = GameState.SubmittedWordDisplay(
-                word: word.uppercased(), score: pts, multiplier: multiplier
+                word: word.uppercased(), score: pts, streakBonus: streakBonus
             )
             // Bank remaining block time across future blocks
             gameState?.bankRemainingTime(blockIndex: waveIdx)

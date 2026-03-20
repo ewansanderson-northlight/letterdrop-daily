@@ -155,7 +155,7 @@ final class GameState: ObservableObject {
     struct SubmittedWordDisplay: Equatable {
         let word: String
         let score: Int
-        let multiplier: Int
+        let streakBonus: Int
     }
     @Published var submittedWordDisplay: SubmittedWordDisplay? = nil
 
@@ -181,12 +181,15 @@ final class GameState: ObservableObject {
                     optima.append(nil)
                 }
             }
-            // Theoretical max: best word per wave × multiplier if perfect streak
-            // Multipliers: wave 0→1×, 1→1×, 2→2×, 3→4×, 4→8×, 5→16×
-            let maxScore = optima.enumerated().reduce(0) { total, pair in
-                let mult = max(1, 1 << max(0, pair.offset - 1))
-                return total + (pair.element?.score ?? 0) * mult
+            // Theoretical max: best word per wave + streak bonus if perfect streak + +200 perfect bonus
+            // Streak bonuses: wave 0→+0, 1→+25, 2→+50, 3→+75, 4→+100, 5→+150
+            let streakBonuses = [0, 25, 50, 75, 100, 150]
+            let waveTotal = optima.enumerated().reduce(0) { total, pair in
+                guard let elem = pair.element else { return total }
+                let bonus = pair.offset < streakBonuses.count ? streakBonuses[pair.offset] : 150
+                return total + elem.score + bonus
             }
+            let maxScore = waveTotal + 200
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 self.waveOptimalWords    = optima
@@ -212,19 +215,28 @@ final class GameState: ObservableObject {
     func deactivateSlowMo()           { isSlowMoActive = false }
     func depleteSlowMo(by dt: Double) { slowMoAllowance = max(0, slowMoAllowance - dt) }
 
-    // MARK: - Cascading multiplier
+    // MARK: - Streak bonus
     /// Number of consecutive waves solved without missing one.
     @Published var consecutiveSolves: Int = 0
-
-    /// Non-nil for ~1 s after the multiplier jumps up; value is the new multiplier.
-    @Published var comboBoostFlash: Int? = nil
 
     /// Index of the wave currently being played (0-5). Set by GameScene when each block enters play.
     @Published var currentWaveIndex: Int = 0
 
-    /// Score multiplier applied to the next word submission.
-    /// Streak 0 or 1 → 1×, streak 2 → 2×, streak 3 → 4×, 4 → 8×, 5 → 16×, 6 → 32×
-    var currentMultiplier: Int { max(1, 1 << max(0, consecutiveSolves - 1)) }
+    /// Additive bonus for the next submission based on the current streak.
+    /// Streak 0 → +0, 1 → +25, 2 → +50, 3 → +75, 4 → +100, 5+ → +150
+    var currentStreakBonus: Int {
+        switch consecutiveSolves {
+        case 0:     return 0
+        case 1:     return 25
+        case 2:     return 50
+        case 3:     return 75
+        case 4:     return 100
+        default:    return 150
+        }
+    }
+
+    /// Shown on the results screen when all 6 waves are solved (+200 perfect round bonus).
+    @Published var showPerfectRoundCelebration: Bool = false
 
     // MARK: - Streak tracking (letterdrop_streak in UserDefaults as JSON)
 
@@ -357,24 +369,24 @@ final class GameState: ObservableObject {
     // MARK: - Round actions
 
     func startRound() {
-        score               = 0
-        foundWords          = []
-        currentSelection    = ""
-        consecutiveSolves   = 0
-        slowMoAllowance     = 15.0
-        isSlowMoActive      = false
-        waveOptimalWords    = []
-        theoreticalMaxScore = 0
-        bestWordFlash       = nil
-        showMissFeedback    = false
+        score                       = 0
+        foundWords                  = []
+        currentSelection            = ""
+        consecutiveSolves           = 0
+        slowMoAllowance             = 15.0
+        isSlowMoActive              = false
+        waveOptimalWords            = []
+        theoreticalMaxScore         = 0
+        bestWordFlash               = nil
+        showMissFeedback            = false
+        showPerfectRoundCelebration = false
         // Per-block timer state
         currentBlockTimeRemaining = 0
-        bankedTime          = 0
-        timerPhase          = .none
-        waveBanner          = nil
-        blockTopUIKitY      = 0
-        comboBoostFlash     = nil
-        currentWaveIndex    = 0
+        bankedTime                  = 0
+        timerPhase                  = .none
+        waveBanner                  = nil
+        blockTopUIKitY              = 0
+        currentWaveIndex            = 0
         phase = .playing
         markPlayedToday()
         AnalyticsManager.shared.track(.puzzleStarted(date: todayString()))
@@ -387,10 +399,18 @@ final class GameState: ObservableObject {
         countdownValue = nil
         submittedWordDisplay = nil
         bestWordFlash = nil
+        // Perfect round bonus
+        if foundWords.count == Constants.Game.wavesPerRound {
+            perfectRounds += 1
+            score += 200
+            showPerfectRoundCelebration = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) { [weak self] in
+                self?.showPerfectRoundCelebration = false
+            }
+        }
         if score > bestScore { bestScore = score }
         totalScore += score
         gamesPlayed += 1
-        if foundWords.count == Constants.Game.wavesPerRound { perfectRounds += 1 }
         phase = .results
         computeWaveOptimal()        // async — populates results screen data
     }
@@ -402,23 +422,16 @@ final class GameState: ObservableObject {
         currentSelection = ""
         submittedWordDisplay = nil
         bestWordFlash = nil
+        showPerfectRoundCelebration = false
         phase = .menu
     }
 
     func submitWord(word: String, score wordScore: Int, waveIndex: Int) {
         foundWords.append(FoundWord(word: word.uppercased(), score: wordScore, waveIndex: waveIndex))
-        // submittedWordDisplay is set by GameScene (which has the multiplier)
+        // submittedWordDisplay is set by GameScene (which owns the streak bonus)
         score += wordScore
         totalWordsCompleted += 1
-        let oldMultiplier = currentMultiplier
         consecutiveSolves += 1          // extend streak
-        let newMultiplier = currentMultiplier
-        if newMultiplier > oldMultiplier {
-            comboBoostFlash = newMultiplier
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-                self?.comboBoostFlash = nil
-            }
-        }
         if wordScore > bestWordScore {
             bestWordScore = wordScore
             bestWord = word.uppercased()
