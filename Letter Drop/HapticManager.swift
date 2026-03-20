@@ -12,9 +12,9 @@ enum HapticManager {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
-    /// Success notification — valid word accepted.
+    /// Medium impact tap — valid word accepted.
     static func validWord() {
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 
     /// Error buzz — invalid word rejected.

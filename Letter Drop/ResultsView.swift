@@ -10,59 +10,59 @@ import SwiftUI
 struct ResultsView: View {
     @EnvironmentObject var gameState: GameState
 
-    @State private var revealed      = false
-    @State private var displayScore  = 0
+    @State private var revealed         = false
+    @State private var displayScore     = 0
+    @State private var definitionWord   : String? = nil
+    @State private var showDefinition   = false
 
     var body: some View {
         ZStack {
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
+                VStack(spacing: 32) {
 
-                    ResultsHeader(revealed: revealed)
-                        .padding(.bottom, 32)
+                    // ── 1. Hero score ──────────────────────────────────────────
+                    HeroScoreView(displayScore: displayScore, revealed: revealed)
 
-                    // ── Score card ───────────────────────────────────────────────
-                    ScoreCard(displayScore: displayScore,
-                              maxScore: gameState.theoreticalMaxScore,
-                              revealed: revealed)
-                        .padding(.bottom, 28)
+                    // ── 2-4. Stats card (combos · best ever · streak) ──────────
+                    StatsCard(
+                        combosFound: gameState.foundWords.count,
+                        totalWaves:  Constants.Game.wavesPerRound,
+                        isNewBest:   gameState.isNewBestScore,
+                        bestScore:   gameState.bestScore,
+                        streak:      gameState.currentStreak,
+                        revealed:    revealed
+                    )
 
-                    // ── Word grid ────────────────────────────────────────────────
-                    SectionLabel(title: "WORDS FOUND")
-                        .padding(.bottom, 10)
-                        .opacity(revealed ? 1 : 0)
-                        .animation(.easeOut(duration: 0.3).delay(0.15), value: revealed)
-
-                    WaveResultsGrid(foundWords: gameState.foundWords,
-                                   optimalWords: gameState.waveOptimalWords,
-                                   revealed: revealed)
-                        .padding(.bottom, 28)
-
-                    // ── Word stats ───────────────────────────────────────────────
+                    // ── 5. Best words per wave ─────────────────────────────────
                     if !gameState.foundWords.isEmpty {
-                        SectionLabel(title: "HIGHLIGHTS")
-                            .padding(.bottom, 10)
-                            .opacity(revealed ? 1 : 0)
-                            .animation(.easeOut(duration: 0.3).delay(0.40), value: revealed)
-
-                        WordHighlightsCard(
-                            shortest: gameState.shortestFoundWord,
-                            longest:  gameState.longestFoundWord,
-                            revealed: revealed
+                        BestWordsCard(
+                            foundWords: gameState.foundWords,
+                            onTap: { word in
+                                definitionWord = word
+                                showDefinition = true
+                            }
                         )
-                        .padding(.bottom, 28)
+                        .opacity(revealed ? 1 : 0)
+                        .offset(y: revealed ? 0 : 12)
+                        .animation(.spring(response: 0.45, dampingFraction: 0.72).delay(0.30),
+                                   value: revealed)
                     }
 
-                    // ── CTA buttons ──────────────────────────────────────────────
+                    // ── CTA buttons ────────────────────────────────────────────
                     CTASection()
                         .opacity(revealed ? 1 : 0)
                         .offset(y: revealed ? 0 : 16)
-                        .animation(.spring(response: 0.4, dampingFraction: 0.75).delay(ctaDelay),
+                        .animation(.spring(response: 0.4, dampingFraction: 0.75).delay(0.50),
                                    value: revealed)
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, 64)
+                .padding(.top, 72)
                 .padding(.bottom, 52)
+            }
+            .sheet(isPresented: $showDefinition) {
+                if let word = definitionWord {
+                    WordDefinitionSheet(word: word, isPresented: $showDefinition)
+                }
             }
             .onAppear {
                 let delay: Double = gameState.showPerfectRoundCelebration ? 2.5 : 0.15
@@ -84,15 +84,11 @@ struct ResultsView: View {
 
     // MARK: - Helpers
 
-    private var ctaDelay: Double {
-        0.45 + Double(max(1, gameState.foundWords.count)) * 0.08
-    }
-
     private func scheduleScoreCountUp() {
         let target = gameState.score
         guard target > 0 else { return }
         let steps        = min(target, 30)
-        let startDelay   = ctaDelay - 0.2
+        let startDelay   = 0.30
         let duration     = 0.65
         let stepInterval = duration / Double(steps)
         for i in 1...steps {
@@ -105,223 +101,221 @@ struct ResultsView: View {
             }
         }
     }
-
 }
 
-// MARK: - Header
+// MARK: - Hero score
 
-private struct ResultsHeader: View {
-    let revealed: Bool
-
-    var body: some View {
-        VStack(spacing: 6) {
-            Text("ROUND OVER")
-                .font(Constants.Fonts.rounded(11, weight: .semibold))
-                .foregroundStyle(Constants.Colors.tile.opacity(0.35))
-                .tracking(3)
-
-            Text("Nice work")
-                .font(Constants.Fonts.rounded(34, weight: .bold))
-                .foregroundStyle(Constants.Colors.tile)
-        }
-        .frame(maxWidth: .infinity)
-        .opacity(revealed ? 1 : 0)
-        .offset(y: revealed ? 0 : 10)
-        .animation(.spring(response: 0.45, dampingFraction: 0.75), value: revealed)
-    }
-}
-
-// MARK: - Score card
-
-private struct ScoreCard: View {
+private struct HeroScoreView: View {
     let displayScore: Int
-    let maxScore: Int
     let revealed: Bool
 
-    private var starCount: Int {
-        guard maxScore > 0 else { return 0 }
-        let pct = Double(displayScore) / Double(maxScore)
-        return pct >= 0.70 ? 3 : pct >= 0.35 ? 2 : 1
+    var body: some View {
+        Text("\(displayScore)")
+            .font(Constants.Fonts.rounded(100, weight: .bold))
+            .foregroundStyle(Constants.Colors.scoreGold)
+            .monospacedDigit()
+            .contentTransition(.numericText())
+            .frame(maxWidth: .infinity)
+            .opacity(revealed ? 1 : 0)
+            .offset(y: revealed ? 0 : 14)
+            .animation(.spring(response: 0.45, dampingFraction: 0.72).delay(0.05), value: revealed)
     }
+}
+
+// MARK: - Stats card
+
+private struct StatsCard: View {
+    let combosFound: Int
+    let totalWaves:  Int
+    let isNewBest:   Bool
+    let bestScore:   Int
+    let streak:      Int
+    let revealed:    Bool
 
     var body: some View {
-        VStack(spacing: 4) {
-            Text("\(displayScore)")
-                .font(Constants.Fonts.rounded(76, weight: .bold))
-                .foregroundStyle(Constants.Colors.scoreGold)
-                .monospacedDigit()
-                .contentTransition(.numericText())
-            if maxScore > 0 {
-                HStack(spacing: 5) {
-                    ForEach(0..<3, id: \.self) { i in
-                        Image(systemName: "star.fill")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(Constants.Colors.gold.opacity(i < starCount ? 1.0 : 0.15))
-                            .animation(.spring(response: 0.4), value: starCount)
-                    }
-                }
-                Text("\(displayScore) / \(maxScore) max")
-                    .font(Constants.Fonts.rounded(13, weight: .regular))
-                    .foregroundStyle(Constants.Colors.tile.opacity(0.35))
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .padding(.top, 2)
-            } else {
-                Text("points")
-                    .font(Constants.Fonts.rounded(17, weight: .regular))
-                    .foregroundStyle(Constants.Colors.tile.opacity(0.45))
-            }
+        VStack(spacing: 0) {
+            CombosRow(found: combosFound, total: totalWaves)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+
+            Rectangle()
+                .fill(Constants.Colors.tile.opacity(0.08))
+                .frame(height: 1)
+
+            BestScoreRow(isNewBest: isNewBest, bestScore: bestScore, revealed: revealed)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+
+            Rectangle()
+                .fill(Constants.Colors.tile.opacity(0.08))
+                .frame(height: 1)
+
+            StreakRow(streak: streak)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
         .background(Constants.Colors.trayBackground, in: RoundedRectangle(cornerRadius: 20))
         .opacity(revealed ? 1 : 0)
-        .offset(y: revealed ? 0 : 14)
-        .animation(.spring(response: 0.45, dampingFraction: 0.72).delay(0.05), value: revealed)
-    }
-}
-
-// MARK: - Wave results grid
-
-/// Shows all 6 wave slots — filled if a word was found, empty if not.
-private struct WaveResultsGrid: View {
-    let foundWords: [FoundWord]
-    let optimalWords: [GameState.WaveOptimal?]
-    let revealed: Bool
-
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 3)
-
-    private func word(for waveIndex: Int) -> FoundWord? {
-        foundWords.first(where: { $0.waveIndex == waveIndex })
-    }
-
-    private func optimal(for waveIndex: Int) -> GameState.WaveOptimal? {
-        guard waveIndex < optimalWords.count else { return nil }
-        return optimalWords[waveIndex]
-    }
-
-    var body: some View {
-        LazyVGrid(columns: columns, spacing: 10) {
-            ForEach(0..<Constants.Game.wavesPerRound, id: \.self) { i in
-                WaveResultCell(waveIndex: i,
-                               found: word(for: i),
-                               optimal: optimal(for: i),
-                               revealed: revealed)
-            }
-        }
-    }
-}
-
-private struct WaveResultCell: View {
-    let waveIndex: Int
-    let found: FoundWord?
-    let optimal: GameState.WaveOptimal?
-    let revealed: Bool
-
-    /// True when the player found a different (or no) word vs the best available.
-    private var showOptimal: Bool {
-        guard let opt = optimal else { return false }
-        if let fw = found { return fw.word != opt.word }
-        return true   // missed wave — always show best
-    }
-
-    var body: some View {
-        VStack(spacing: 3) {
-            if let fw = found {
-                Text(fw.word)
-                    .font(Constants.Fonts.rounded(15, weight: .bold))
-                    .foregroundStyle(Constants.Colors.tileText)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Text("+\(fw.score)")
-                    .font(Constants.Fonts.rounded(12, weight: .semibold))
-                    .foregroundStyle(Constants.Colors.scoreGold)
-            } else {
-                Image(systemName: "minus")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Constants.Colors.tile.opacity(0.20))
-            }
-
-            if showOptimal, let opt = optimal {
-                HStack(spacing: 3) {
-                    Text("best:")
-                        .font(Constants.Fonts.rounded(9, weight: .medium))
-                        .foregroundStyle(Constants.Colors.success.opacity(0.65))
-                    Text(opt.word)
-                        .font(Constants.Fonts.rounded(10, weight: .bold))
-                        .foregroundStyle(Constants.Colors.success.opacity(0.90))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                }
-                .padding(.horizontal, 7)
-                .padding(.vertical, 3)
-                .background(Constants.Colors.success.opacity(0.13), in: Capsule())
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .frame(minHeight: 56)
-        .padding(.vertical, showOptimal ? 8 : 0)
-        .background(
-            found != nil
-                ? Constants.Colors.tile
-                : Constants.Colors.trayBackground,
-            in: RoundedRectangle(cornerRadius: 12)
-        )
-        .opacity(revealed ? 1 : 0)
         .offset(y: revealed ? 0 : 12)
-        .animation(
-            .spring(response: 0.42, dampingFraction: 0.72)
-                .delay(0.18 + Double(waveIndex) * 0.07),
-            value: revealed
-        )
+        .animation(.spring(response: 0.45, dampingFraction: 0.72).delay(0.18), value: revealed)
     }
 }
 
-// MARK: - Word highlights
+// MARK: - Combos row
 
-private struct WordHighlightsCard: View {
-    let shortest: String?
-    let longest:  String?
-    let revealed: Bool
-
-    var body: some View {
-        VStack(spacing: 2) {
-            if let w = shortest {
-                HighlightRow(label: "Shortest", word: w,
-                             revealDelay: 0.42, revealed: revealed)
-            }
-            if let w = longest, w != shortest {
-                HighlightRow(label: "Longest", word: w,
-                             revealDelay: 0.48, revealed: revealed)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-    }
-}
-
-private struct HighlightRow: View {
-    let label: String
-    let word: String
-    let revealDelay: Double
-    let revealed: Bool
+private struct CombosRow: View {
+    let found: Int
+    let total: Int
 
     var body: some View {
         HStack {
-            Text(label)
-                .font(Constants.Fonts.rounded(15, weight: .regular))
-                .foregroundStyle(Constants.Colors.tile.opacity(0.6))
+            Text("COMBOS")
+                .font(Constants.Fonts.rounded(11, weight: .semibold))
+                .foregroundStyle(Constants.Colors.tile.opacity(0.40))
+                .tracking(2)
             Spacer()
-            Text(word)
-                .font(Constants.Fonts.rounded(16, weight: .bold))
-                .foregroundStyle(Constants.Colors.tile)
+            HStack(spacing: 6) {
+                Image(systemName: "flame.fill")
+                    .foregroundStyle(Constants.Colors.scoreGold)
+                Text("\(found)/\(total)")
+            }
+            .font(Constants.Fonts.rounded(20, weight: .bold))
+            .foregroundStyle(Constants.Colors.tile)
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 14)
-        .background(Constants.Colors.trayBackground)
-        .opacity(revealed ? 1 : 0)
-        .offset(x: revealed ? 0 : 16)
-        .animation(.spring(response: 0.4, dampingFraction: 0.75).delay(revealDelay),
-                   value: revealed)
+    }
+}
+
+// MARK: - Best score row
+
+private struct BestScoreRow: View {
+    let isNewBest: Bool
+    let bestScore: Int
+    let revealed:  Bool
+
+    @State private var newBestPopped = false
+
+    var body: some View {
+        HStack {
+            if isNewBest {
+                HStack(spacing: 8) {
+                    Image(systemName: "star.fill")
+                    Text("NEW HIGH SCORE")
+                }
+                .font(Constants.Fonts.rounded(16, weight: .bold))
+                .foregroundStyle(Constants.Colors.scoreGold)
+                .frame(maxWidth: .infinity)
+                    .scaleEffect(newBestPopped ? 1.0 : 0.55)
+                    .opacity(newBestPopped ? 1.0 : 0)
+                    .animation(.spring(response: 0.38, dampingFraction: 0.58), value: newBestPopped)
+                    .onChange(of: revealed) { _, isRevealed in
+                        if isRevealed {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                                newBestPopped = true
+                            }
+                        }
+                    }
+            } else {
+                Text("BEST EVER")
+                    .font(Constants.Fonts.rounded(11, weight: .semibold))
+                    .foregroundStyle(Constants.Colors.tile.opacity(0.40))
+                    .tracking(2)
+                Spacer()
+                Text(formattedScore(bestScore))
+                    .font(Constants.Fonts.rounded(20, weight: .bold))
+                    .foregroundStyle(Constants.Colors.tile)
+            }
+        }
+    }
+
+    private func formattedScore(_ n: Int) -> String {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        return f.string(from: n as NSNumber) ?? "\(n)"
+    }
+}
+
+// MARK: - Streak row
+
+private struct StreakRow: View {
+    let streak: Int
+
+    var body: some View {
+        HStack {
+            Text("STREAK")
+                .font(Constants.Fonts.rounded(11, weight: .semibold))
+                .foregroundStyle(Constants.Colors.tile.opacity(0.40))
+                .tracking(2)
+            Spacer()
+            HStack(spacing: 6) {
+                Image(systemName: "flame.fill")
+                    .foregroundStyle(Constants.Colors.scoreGold)
+                Text("Day \(streak)")
+            }
+            .font(Constants.Fonts.rounded(20, weight: .bold))
+            .foregroundStyle(Constants.Colors.tile)
+        }
+    }
+}
+
+// MARK: - Best words per wave
+
+private struct BestWordsCard: View {
+    let foundWords: [FoundWord]
+    let onTap: (String) -> Void
+
+    /// One best word per wave, sorted by wave index.
+    private var bestPerWave: [FoundWord] {
+        Dictionary(grouping: foundWords, by: \.waveIndex)
+            .compactMapValues { $0.max(by: { $0.score < $1.score }) }
+            .sorted(by: { $0.key < $1.key })
+            .map(\.value)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(bestPerWave.enumerated()), id: \.element.word) { idx, fw in
+                if idx > 0 {
+                    Rectangle()
+                        .fill(Constants.Colors.tile.opacity(0.08))
+                        .frame(height: 1)
+                }
+                BestWordRow(foundWord: fw, onTap: onTap)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
+            }
+        }
+        .background(Constants.Colors.trayBackground, in: RoundedRectangle(cornerRadius: 20))
+    }
+}
+
+private struct BestWordRow: View {
+    let foundWord: FoundWord
+    let onTap: (String) -> Void
+
+    var body: some View {
+        Button {
+            onTap(foundWord.word)
+        } label: {
+            HStack {
+                Text("WAVE \(foundWord.waveIndex + 1)")
+                    .font(Constants.Fonts.rounded(11, weight: .semibold))
+                    .foregroundStyle(Constants.Colors.tile.opacity(0.38))
+                    .tracking(2)
+                Spacer()
+                Text(foundWord.word)
+                    .font(Constants.Fonts.rounded(17, weight: .bold))
+                    .foregroundStyle(Constants.Colors.tile)
+                Text("+\(foundWord.score)")
+                    .font(Constants.Fonts.rounded(14, weight: .semibold))
+                    .foregroundStyle(Constants.Colors.scoreGold)
+                    .padding(.leading, 4)
+                Image(systemName: "info.circle")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Constants.Colors.tile.opacity(0.35))
+                    .padding(.leading, 6)
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -334,8 +328,11 @@ private struct CTASection: View {
     @State private var showImageShare       = false
     @State private var showChallengeShare   = false
 
-    private var bestScoringWord: FoundWord? {
-        gameState.foundWords.max(by: { $0.score < $1.score })
+    private var shareCaption: String {
+        let combos = gameState.foundWords.count
+        let total  = Constants.Game.wavesPerRound
+        let streak = gameState.currentStreak
+        return "Letter Drop · \(gameState.score) · \(combos)/\(total) Combos · Day \(streak) 🔥 letterdrops.app"
     }
 
     private var challengeText: String {
@@ -350,10 +347,11 @@ private struct CTASection: View {
                 let fmt = DateFormatter()
                 fmt.dateFormat = "d MMMM yyyy"
                 if let img = renderScoreCard(
-                    score: gameState.score,
-                    maxScore: gameState.theoreticalMaxScore,
-                    bestWord: bestScoringWord,
-                    dateString: fmt.string(from: Date())
+                    score:       gameState.score,
+                    combosFound: gameState.foundWords.count,
+                    totalWaves:  Constants.Game.wavesPerRound,
+                    streak:      gameState.currentStreak,
+                    dateString:  fmt.string(from: Date())
                 ) {
                     shareImage = img
                     showImageShare = true
@@ -377,7 +375,7 @@ private struct CTASection: View {
             }
             .sheet(isPresented: $showImageShare) {
                 if let img = shareImage {
-                    ActivitySheet(items: [img], isPresented: $showImageShare)
+                    ActivitySheet(items: [shareCaption, img], isPresented: $showImageShare)
                 }
             }
 
@@ -428,19 +426,6 @@ private struct CTASection: View {
     }
 }
 
-// MARK: - Section label
-
-private struct SectionLabel: View {
-    let title: String
-    var body: some View {
-        Text(title)
-            .font(Constants.Fonts.rounded(11, weight: .semibold))
-            .foregroundStyle(Constants.Colors.tile.opacity(0.4))
-            .tracking(2)
-            .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
 // MARK: - Perfect round celebration overlay
 
 private struct PerfectRoundCelebrationOverlay: View {
@@ -475,21 +460,15 @@ private struct PerfectRoundCelebrationOverlay: View {
 
 #Preview {
     let state = GameState()
-    state.score = 31
+    state.score = 340
     state.foundWords = [
-        FoundWord(word: "RAIN",  score: 5,  waveIndex: 0),
-        FoundWord(word: "MIST",  score: 5,  waveIndex: 2),
-        FoundWord(word: "CLOUD", score: 8,  waveIndex: 4),
+        FoundWord(word: "RAIN",  score: 40, waveIndex: 0),
+        FoundWord(word: "MIST",  score: 40, waveIndex: 2),
+        FoundWord(word: "CLOUD", score: 50, waveIndex: 4),
     ]
-    state.waveOptimalWords = [
-        GameState.WaveOptimal(word: "RAINS",  score: 7),
-        nil,
-        GameState.WaveOptimal(word: "MIST",   score: 5),
-        nil,
-        GameState.WaveOptimal(word: "CLOUDS", score: 10),
-        nil,
-    ]
-    state.theoreticalMaxScore = 88
+    state.bestScore      = 340
+    state.isNewBestScore = true
+    state.currentStreak  = 7
     return ZStack {
         Constants.Colors.background.ignoresSafeArea()
         ResultsView().environmentObject(state)

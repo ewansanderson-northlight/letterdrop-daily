@@ -238,6 +238,9 @@ final class GameState: ObservableObject {
     /// Shown on the results screen when all 6 waves are solved (+200 perfect round bonus).
     @Published var showPerfectRoundCelebration: Bool = false
 
+    /// True when the score just set in endRound() beats the stored personal best.
+    @Published var isNewBestScore: Bool = false
+
     // MARK: - Streak tracking (letterdrop_streak in UserDefaults as JSON)
 
     struct StreakData: Codable {
@@ -380,6 +383,7 @@ final class GameState: ObservableObject {
         bestWordFlash               = nil
         showMissFeedback            = false
         showPerfectRoundCelebration = false
+        isNewBestScore              = false
         // Per-block timer state
         currentBlockTimeRemaining = 0
         bankedTime                  = 0
@@ -408,6 +412,7 @@ final class GameState: ObservableObject {
                 self?.showPerfectRoundCelebration = false
             }
         }
+        isNewBestScore = score > bestScore
         if score > bestScore { bestScore = score }
         totalScore += score
         gamesPlayed += 1

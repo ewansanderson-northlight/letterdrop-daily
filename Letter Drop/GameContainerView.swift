@@ -132,11 +132,18 @@ private struct CountdownOverlay: View {
         ZStack {
             Color.black.opacity(0.40).ignoresSafeArea()
 
-            Text(value == 0 ? "GO" : "\(value)")
-                .font(Constants.Fonts.rounded(100, weight: .bold))
-                .foregroundStyle(value == 0 ? Constants.Colors.gold : Constants.Colors.tile)
-                .scaleEffect(scale)
-                .opacity(opacity)
+            VStack(spacing: 28) {
+                Text(value == 0 ? "GO" : "\(value)")
+                    .font(Constants.Fonts.rounded(value == 0 ? 100 : 78, weight: .bold))
+                    .foregroundStyle(value == 0 ? Constants.Colors.gold : Constants.Colors.tile)
+                    .scaleEffect(scale)
+                    .opacity(opacity)
+
+                if value != 0 {
+                    SwipeTutorialView()
+                        .transition(.opacity.animation(.easeInOut(duration: 0.2)))
+                }
+            }
         }
         .onAppear { pop() }
         .onChange(of: value) { scale = 0.35; opacity = 0; pop() }
@@ -146,6 +153,161 @@ private struct CountdownOverlay: View {
         withAnimation(.spring(response: 0.32, dampingFraction: 0.62)) {
             scale = 1.0; opacity = 1.0
         }
+    }
+}
+
+// MARK: - Swipe tutorial (animated mini-grid shown during 3-2-1 countdown)
+
+private struct SwipeTutorialView: View {
+
+    // 5×5 grid — diagonal (0,0)→(1,1)→(2,2)→(3,3)→(4,4) spells S-W-I-P-E
+    private static let letters: [[String]] = [
+        ["S", "R", "A", "T", "N"],
+        ["L", "W", "O", "E", "D"],
+        ["B", "H", "I", "G", "M"],
+        ["C", "F", "K", "P", "U"],
+        ["V", "Y", "Z", "X", "E"],
+    ]
+    private static let swipePath: [(row: Int, col: Int)] = [
+        (0,0),(1,1),(2,2),(3,3),(4,4)
+    ]
+
+    private let tileSize : CGFloat = 44
+    private let gap      : CGFloat = 6
+    private var spacing  : CGFloat { tileSize + gap }          // 50 pt between centres
+    private var gridSize : CGFloat { 5 * tileSize + 4 * gap }  // 244 pt square
+
+    // Play-once timing
+    //   Phase 1 — trail grows across 4 segments  : 4 × 0.275 = 1.100 s
+    //   Phase 2 — hold all tiles lit             :             0.100 s
+    //   Phase 3 — strikethrough sweeps in        :             0.220 s
+    //   Phase 4 — hold final state forever       :             ∞
+    private let segInterval : Double = 0.275
+    private let holdTiles   : Double = 0.100
+    private let strikeTime  : Double = 0.220
+
+    @State private var startDate: Date = .now
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { tl in
+            let elapsed  = tl.date.timeIntervalSince(startDate)
+            let progress = elapsed
+            let s = animState(progress)
+
+            VStack(spacing: 14) {
+                // ── Grid + trail ─────────────────────────────────────────
+                ZStack {
+                    VStack(spacing: gap) {
+                        ForEach(0..<5, id: \.self) { row in
+                            HStack(spacing: gap) {
+                                ForEach(0..<5, id: \.self) { col in
+                                    let pidx = Self.swipePath.firstIndex { $0.row == row && $0.col == col }
+                                    MiniTile(
+                                        letter: Self.letters[row][col],
+                                        isLit:  pidx != nil && pidx! < s.litCount
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Glowing trail line
+                    Canvas { ctx, _ in
+                        guard s.trailProg > 0.001 else { return }
+                        let path  = buildTrail(s.trailProg)
+                        let thick = StrokeStyle(lineWidth: 10,  lineCap: .round, lineJoin: .round)
+                        let thin  = StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round)
+                        ctx.stroke(path, with: .color(Constants.Colors.gold.opacity(0.28)), style: thick)
+                        ctx.stroke(path, with: .color(Constants.Colors.gold),               style: thin)
+                    }
+                    .frame(width: gridSize, height: gridSize)
+                    .allowsHitTesting(false)
+                }
+                .frame(width: gridSize, height: gridSize)
+
+                // ── "SWIPE!" label with expanding strikethrough ───────────
+                Text("SWIPE!")
+                    .font(Constants.Fonts.rounded(18, weight: .semibold))
+                    .foregroundStyle(Constants.Colors.tile.opacity(0.88))
+                    .overlay(alignment: .center) {
+                        Rectangle()
+                            .fill(Constants.Colors.gold)
+                            .frame(height: 2)
+                            .scaleEffect(x: s.strike, anchor: .leading)
+                    }
+            }
+            .opacity(s.opacity)
+        }
+        .onAppear { startDate = .now }
+    }
+
+    // MARK: - Animation state
+
+    private typealias S = (litCount: Int, trailProg: Double, strike: CGFloat, opacity: Double)
+
+    private func animState(_ p: Double) -> S {
+        let p1 = 4.0 * segInterval  // 1.100 — trail fully grown
+        let p2 = p1  + holdTiles    // 1.200
+        let p3 = p2  + strikeTime   // 1.420 — strikethrough complete; hold forever after
+
+        if p < p1 {
+            let trail = min(4.0, p / segInterval)
+            return (min(5, Int(trail) + 1), trail, 0, 1)
+        } else if p < p2 {
+            return (5, 4.0, 0, 1)
+        } else if p < p3 {
+            return (5, 4.0, CGFloat((p - p2) / strikeTime), 1)
+        } else {
+            return (5, 4.0, 1, 1)  // final state — all lit, strikethrough complete
+        }
+    }
+
+    // MARK: - Trail path
+
+    private func tileCenter(_ idx: Int) -> CGPoint {
+        let c = Self.swipePath[idx]
+        return CGPoint(
+            x: CGFloat(c.col) * spacing + tileSize / 2,
+            y: CGFloat(c.row) * spacing + tileSize / 2
+        )
+    }
+
+    private func buildTrail(_ trail: Double) -> Path {
+        var path = Path()
+        path.move(to: tileCenter(0))
+        let full    = min(Int(trail), 4)
+        let partial = trail - Double(Int(trail))
+        for i in 0..<full {
+            path.addLine(to: tileCenter(i + 1))
+        }
+        if full < 4 {
+            let a = tileCenter(full)
+            let b = tileCenter(full + 1)
+            path.addLine(to: CGPoint(
+                x: a.x + (b.x - a.x) * partial,
+                y: a.y + (b.y - a.y) * partial
+            ))
+        }
+        return path
+    }
+}
+
+// MARK: - Mini tile (tutorial grid)
+
+private struct MiniTile: View {
+    let letter: String
+    let isLit : Bool
+
+    var body: some View {
+        Text(letter)
+            .font(Constants.Fonts.rounded(15, weight: .bold))
+            .foregroundStyle(isLit ? Constants.Colors.tileText : Constants.Colors.tile.opacity(0.60))
+            .frame(width: 44, height: 44)
+            .background(
+                RoundedRectangle(cornerRadius: 9)
+                    .fill(isLit ? Constants.Colors.tile : Constants.Colors.trayBackground)
+            )
+            .shadow(color: isLit ? Constants.Colors.gold.opacity(0.45) : .clear, radius: 5)
     }
 }
 
@@ -248,23 +410,52 @@ private struct WaveBannerOverlay: View {
     @State private var scale:   CGFloat = 0.7
     @State private var opacity: Double  = 0
 
+    private var waveNumber: Int {
+        text.components(separatedBy: " ").last.flatMap(Int.init) ?? 1
+    }
+
+    private var difficultyLabel: String {
+        switch waveNumber {
+        case 1, 2: return "EASY"
+        case 3, 4: return "TRICKY"
+        default:   return "SAVAGE"
+        }
+    }
+
+    private var difficultyColor: Color {
+        switch waveNumber {
+        case 1, 2: return Constants.Colors.success
+        case 3, 4: return Constants.Colors.gold
+        default:   return Constants.Colors.failure
+        }
+    }
+
     var body: some View {
         VStack {
             Spacer().frame(height: 160)
-            Text(text)
-                .font(Constants.Fonts.rounded(24, weight: .bold))
-                .foregroundStyle(Constants.Colors.tile)
-                .tracking(5)
-                .padding(.horizontal, 28)
-                .padding(.vertical, 11)
-                .background(Capsule().fill(Constants.Colors.trayBackground.opacity(0.90)))
-                .scaleEffect(scale)
-                .opacity(opacity)
-                .onAppear {
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.62)) {
-                        scale = 1.0; opacity = 1.0
-                    }
+            HStack(spacing: 0) {
+                Text(text)
+                    .font(Constants.Fonts.rounded(24, weight: .bold))
+                    .foregroundStyle(Constants.Colors.tile)
+                    .tracking(5)
+                Text("  ·  ")
+                    .font(Constants.Fonts.rounded(24, weight: .bold))
+                    .foregroundStyle(Constants.Colors.tile.opacity(0.35))
+                Text(difficultyLabel)
+                    .font(Constants.Fonts.rounded(17, weight: .semibold))
+                    .foregroundStyle(difficultyColor)
+                    .tracking(3)
+            }
+            .padding(.horizontal, 28)
+            .padding(.vertical, 11)
+            .background(Capsule().fill(Constants.Colors.trayBackground.opacity(0.90)))
+            .scaleEffect(scale)
+            .opacity(opacity)
+            .onAppear {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.62)) {
+                    scale = 1.0; opacity = 1.0
                 }
+            }
             Spacer()
         }
     }
@@ -541,20 +732,23 @@ private struct StreakBadge: View {
 
     var body: some View {
         if consecutiveSolves >= 1 {
-            Text("🔥 \(consecutiveSolves)")
-                .font(Constants.Fonts.rounded(15, weight: .bold))
-                .foregroundStyle(Constants.Colors.tileText)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 5)
-                .background(Constants.Colors.gold, in: Capsule())
-                .scaleEffect(popped ? 1.0 : 0.6)
-                .opacity(popped ? 1 : 0)
-                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: popped)
-                .onAppear { popped = true }
-                .onChange(of: consecutiveSolves) {
-                    popped = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { popped = true }
-                }
+            HStack(spacing: 4) {
+                Image(systemName: "flame.fill")
+                Text("\(consecutiveSolves)")
+            }
+            .font(Constants.Fonts.rounded(15, weight: .bold))
+            .foregroundStyle(Constants.Colors.tileText)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background(Constants.Colors.gold, in: Capsule())
+            .scaleEffect(popped ? 1.0 : 0.6)
+            .opacity(popped ? 1 : 0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: popped)
+            .onAppear { popped = true }
+            .onChange(of: consecutiveSolves) {
+                popped = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { popped = true }
+            }
         }
     }
 }
@@ -607,11 +801,16 @@ private struct SelectionPreview: View {
             let base = ScoreCalculator.score(for: word)
             if base > 0 {
                 let total = base + streakBonus
-                Text(streakBonus > 0 ? "+\(total)  🔥" : "+\(base)")
-                    .font(Constants.Fonts.rounded(15, weight: .semibold))
-                    .foregroundStyle(Constants.Colors.gold)
-                    .padding(.leading, 4)
-                    .transition(.opacity)
+                HStack(spacing: 4) {
+                    Text(streakBonus > 0 ? "+\(total)" : "+\(base)")
+                    if streakBonus > 0 {
+                        Image(systemName: "flame.fill")
+                    }
+                }
+                .font(Constants.Fonts.rounded(15, weight: .semibold))
+                .foregroundStyle(Constants.Colors.gold)
+                .padding(.leading, 4)
+                .transition(.opacity)
             }
         }
         .padding(.horizontal, 16)

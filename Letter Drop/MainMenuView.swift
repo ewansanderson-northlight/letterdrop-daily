@@ -180,7 +180,7 @@ struct MainMenuView: View {
             )
 
             // Tagline
-            Text("Build words before they fall away.")
+            Text("Swipe Fast, Play Daily.")
                 .font(Constants.Fonts.rounded(15, weight: .regular))
                 .foregroundStyle(Constants.Colors.tile.opacity(0.5))
                 .multilineTextAlignment(.center)
@@ -376,7 +376,7 @@ private struct StatCardRow: View {
     let streakDays: Int
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             StatCard(value: "\(bestScore)", label: "Best Score", icon: "star.fill",
                      iconColor: Constants.Colors.success)
             StatCard(value: "\(streakDays)", label: "Streak Days", icon: "flame.fill",
@@ -406,14 +406,12 @@ private struct StatCard: View {
                 .foregroundStyle(Constants.Colors.tile.opacity(0.50))
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .background(
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Constants.Colors.tile.opacity(0.05))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(Constants.Colors.tile.opacity(0.13), lineWidth: 1)
-                )
+                .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
         )
     }
 }
@@ -504,8 +502,8 @@ private struct FallingGridBlock: View {
     private let blockSide : CGFloat   // width == height (square 5×5 grid)
 
     // MARK: Timing
-    private let fallDuration : Double = 9.0   // seconds to traverse screen top→bottom
-    private let gapDuration  : Double = 2.5   // seconds block is hidden above screen
+    private let fallDuration : Double = 20.0  // seconds to traverse screen top→bottom
+    private let gapDuration  : Double = 5.0   // seconds block is hidden above screen
     private var totalDuration: Double { fallDuration + gapDuration }
 
     // MARK: Y positions (block centre)
