@@ -6,41 +6,41 @@
       "grid" : [
         [
           "L",
-          "R",
-          "S",
-          "G",
-          "A"
-        ],
-        [
-          "J",
-          "K",
-          "H",
-          "W",
-          "Q"
+          "E",
+          "O",
+          "P",
+          "D"
         ],
         [
           "E",
-          "I",
-          "I",
-          "T",
-          "U"
-        ],
-        [
           "D",
+          "A",
+          "T",
+          "L"
+        ],
+        [
+          "T",
+          "G",
+          "C",
           "R",
-          "E",
-          "U",
+          "O"
+        ],
+        [
+          "T",
+          "N",
+          "P",
+          "N",
           "C"
         ],
         [
-          "E",
           "A",
-          "E",
-          "O",
-          "S"
+          "Y",
+          "R",
+          "A",
+          "Q"
         ]
       ],
-      "targetWord" : "COUTHIE"
+      "targetWord" : "ANGELED"
     },
     {
       "difficulty" : "amber",
@@ -128,83 +128,83 @@
       "difficulty" : "green",
       "grid" : [
         [
-          "H",
-          "A",
-          "S",
-          "R",
-          "E"
-        ],
-        [
-          "N",
-          "I",
-          "C",
-          "M",
-          "O"
-        ],
-        [
-          "R",
-          "P",
-          "W",
-          "N",
-          "L"
-        ],
-        [
           "F",
+          "G",
+          "N",
+          "T",
+          "T"
+        ],
+        [
+          "T",
+          "E",
+          "E",
+          "N",
+          "Q"
+        ],
+        [
+          "W",
+          "O",
+          "N",
+          "O",
+          "I"
+        ],
+        [
+          "U",
           "I",
-          "O",
-          "O",
+          "A",
+          "E",
           "A"
         ],
         [
-          "H",
-          "I",
           "E",
-          "L",
-          "N"
+          "E",
+          "N",
+          "N",
+          "D"
         ]
       ],
-      "targetWord" : "ANOPIAS"
+      "targetWord" : "ADENINE"
     },
     {
       "difficulty" : "amber",
       "grid" : [
         [
           "I",
-          "O",
-          "S",
-          "E",
-          "S"
-        ],
-        [
-          "S",
-          "E",
-          "G",
+          "K",
           "N",
+          "A",
           "A"
         ],
         [
-          "W",
+          "D",
+          "M",
+          "E",
+          "E",
+          "B"
+        ],
+        [
+          "O",
+          "I",
+          "Q",
+          "L",
+          "I"
+        ],
+        [
           "D",
           "R",
-          "U",
-          "T"
-        ],
-        [
-          "V",
-          "T",
-          "B",
-          "H",
+          "L",
+          "L",
           "S"
         ],
         [
-          "A",
-          "J",
           "O",
-          "U",
-          "S"
+          "B",
+          "D",
+          "R",
+          "Q"
         ]
       ],
-      "targetWord" : "BUTANES"
+      "targetWord" : "BILLIE"
     },
     {
       "difficulty" : "red",

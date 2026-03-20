@@ -354,8 +354,8 @@ private struct RulesSection: View {
          "Every wave has its own timer. Submit early and your leftover time is shared equally across the remaining waves."),
 
         ("bolt.fill",
-         "Combo multiplier",
-         "String together successful waves to build your combo. Miss one and it resets."),
+         "Combos",
+         "Hit a word in every wave to build your combo streak. Each consecutive wave adds a bonus to your score. Miss one and your streak resets."),
 
         ("tortoise.fill",
          "Slow motion",
@@ -367,7 +367,7 @@ private struct RulesSection: View {
 
         ("star.fill",
          "Score",
-         "Your score is word length × combo multiplier. The harder the wave, the bigger the words available."),
+         "Words score points based on their length. Build a combo streak to add bonus points on top. Hit all 6 waves for a Perfect Round bonus."),
     ]
 
     var body: some View {

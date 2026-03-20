@@ -12,9 +12,9 @@ enum HapticManager {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
-    /// Success notification — valid word accepted.
+    /// Medium impact tap — valid word accepted.
     static func validWord() {
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 
     /// Error buzz — invalid word rejected.
@@ -29,6 +29,23 @@ enum HapticManager {
 
     /// Heavy thud — slow-motion activates.
     static func slowMoActivate() {
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+    }
+
+    // MARK: - Timer tension spikes
+
+    /// Light tick — block timer reaches 10 seconds.
+    static func timerWarning() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    /// Medium pulse — block timer reaches 5 seconds.
+    static func timerUrgent() {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    }
+
+    /// Heavy thud — block timer reaches 3, 2, or 1 second.
+    static func timerCritical() {
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
     }
 

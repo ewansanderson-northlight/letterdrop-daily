@@ -128,6 +128,7 @@ final class GameScene: SKScene {
 
         // Pre-position block 0 at play zone so the player sees it during 3-2-1-GO
         spawnBlock(0, at: CGPoint(x: waveLeft, y: playY))
+
     }
 
     func stopGame() {
@@ -148,6 +149,9 @@ final class GameScene: SKScene {
             blockPhase = .idle
             return
         }
+        // Clear previous wave's frozen tile preview and best word badge as new wave arrives
+        gameState?.submittedWordDisplay = nil
+        gameState?.bestWordFlash = nil
         spawnBlock(index, at: CGPoint(x: waveLeft, y: size.height))
         blockPhase = .flyingIn(index)
         showWaveBanner(index: index)
@@ -380,7 +384,7 @@ final class GameScene: SKScene {
 
     // MARK: - Score pop
 
-    private func spawnScorePop(score: Int, multiplier: Int, near coords: [TileCoord]) {
+    private func spawnScorePop(score: Int, streakBonus: Int, near coords: [TileCoord]) {
         guard score > 0, !coords.isEmpty else { return }
 
         let positions: [CGPoint] = coords.compactMap { c in
@@ -394,11 +398,11 @@ final class GameScene: SKScene {
         let cx = positions.map(\.x).reduce(0, +) / CGFloat(positions.count)
         let cy = positions.map(\.y).reduce(0, +) / CGFloat(positions.count)
 
-        let text  = multiplier > 1 ? "+\(score)  ×\(multiplier)" : "+\(score)"
+        let text  = streakBonus > 0 ? "+\(score)  ★" : "+\(score)"
         let label                     = SKLabelNode(text: text)
         label.fontName                = "SFRounded-Semibold"
-        label.fontSize                = multiplier > 1 ? 22 : 20
-        label.fontColor               = multiplier > 1
+        label.fontSize                = streakBonus > 0 ? 22 : 20
+        label.fontColor               = streakBonus > 0
                                         ? UIColor(Constants.Colors.gold)
                                         : UIColor(Constants.Colors.success)
         label.verticalAlignmentMode   = .center
@@ -448,11 +452,38 @@ final class GameScene: SKScene {
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard isPlaying, let touch = touches.first else { return }
-        guard let coord = findTile(at: touch.location(in: self)) else { return }
+        let loc = touch.location(in: self)
+        let prev = touch.previousLocation(in: self)
+        let dx = loc.x - prev.x
+        let dy = loc.y - prev.y
+        let moveDist = hypot(dx, dy)
+        // Detect diagonal intent: angle 25–65° from horizontal in any quadrant
+        let isDiagonal: Bool
+        if moveDist > 2 {
+            let angleDeg = Double(atan2(abs(dy), abs(dx))) * 180 / .pi
+            isDiagonal = angleDeg >= 25 && angleDeg <= 65
+        } else {
+            isDiagonal = false
+        }
+        guard let coord = findTile(at: loc, isDiagonal: isDiagonal) else { return }
         guard !selectionPath.isEmpty else { return }
         guard let firstWave = selectionPath.first?.waveIndex,
-              coord.waveIndex == firstWave,
-              !selectionPath.contains(coord),
+              coord.waveIndex == firstWave
+        else { return }
+
+        // Backtrack: finger re-entered the second-to-last tile — peel the last tile off.
+        if selectionPath.count >= 2 && coord == selectionPath[selectionPath.count - 2] {
+            let removed = selectionPath.removeLast()
+            activeWaveNodes[removed.waveIndex]?.tile(at: removed.row, col: removed.col)?.cancelGhostTrail()
+            activeWaveNodes[removed.waveIndex]?.setSelected(false, at: removed.row, col: removed.col)
+            gameState?.currentSelection = currentWord()
+            HapticManager.selectTile()
+            updateTrail()
+            return
+        }
+
+        // Forward selection: must be an unvisited adjacent tile.
+        guard !selectionPath.contains(coord),
               let last = selectionPath.last,
               areAdjacent(last, coord)
         else { return }
@@ -510,36 +541,37 @@ final class GameScene: SKScene {
         guard word.count >= 3 else { cancelSelection(); return }
 
         if WordValidator.shared.isValid(word) {
-            let baseScore  = ScoreCalculator.score(for: word)
-            let multiplier = gameState?.currentMultiplier ?? 1
-            let pts        = baseScore * multiplier
-            let waveIdx    = selectionPath.first!.waveIndex
-            let captured   = selectionPath
+            let baseScore   = ScoreCalculator.score(for: word)
+            let streakBonus = gameState?.currentStreakBonus ?? 0
+            let pts         = baseScore + streakBonus
+            let waveIdx     = selectionPath.first!.waveIndex
+            let captured    = selectionPath
 
             for (i, coord) in captured.enumerated() {
                 activeWaveNodes[coord.waveIndex]?
                     .removeTileAnimated(at: coord.row, col: coord.col, delay: Double(i) * 0.05)
             }
-            spawnScorePop(score: pts, multiplier: multiplier, near: captured)
+            spawnScorePop(score: pts, streakBonus: streakBonus, near: captured)
             flashScreen(color: UIColor(Constants.Colors.success))
             HapticManager.validWord()
             gameState?.submitWord(word: word, score: pts, waveIndex: waveIdx)
+            // Freeze the tile preview in place — GameScene owns streak bonus so we set it here
+            gameState?.submittedWordDisplay = GameState.SubmittedWordDisplay(
+                word: word.uppercased(), score: pts, streakBonus: streakBonus
+            )
             // Bank remaining block time across future blocks
             gameState?.bankRemainingTime(blockIndex: waveIdx)
             gameState?.currentSelection = ""
             trailNode.path = nil
             selectionPath.removeAll()
 
-            // Best word flash — solve grid on background thread
+            // Best word — solve on background thread; cleared when next wave starts or round ends
             let flatGrid = challengeWaveLetters[waveIdx]
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 guard let best = WaveGridSolver.bestWord(in: flatGrid) else { return }
                 DispatchQueue.main.async { [weak self] in
                     self?.gameState?.bestWordFlash =
                         GameState.BestWordFlash(word: best.word, score: best.score)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
-                        self?.gameState?.bestWordFlash = nil
-                    }
                 }
             }
 
@@ -586,9 +618,13 @@ final class GameScene: SKScene {
         !(a.row == b.row && a.col == b.col)
     }
 
-    private func findTile(at scenePoint: CGPoint) -> TileCoord? {
+    /// Hit test is a circle centred on each tile.
+    /// Straight swipes (horizontal/vertical) use a generous 0.85 radius — no problem there.
+    /// Diagonal swipes tighten to 0.65 so the finger must pass near the letter centre;
+    /// this prevents corner clips from accidentally registering an adjacent tile.
+    private func findTile(at scenePoint: CGPoint, isDiagonal: Bool = false) -> TileCoord? {
         var best: (coord: TileCoord, dist: CGFloat)? = nil
-        let hitRadius = tileSize * 0.68
+        let hitRadius = tileSize * (isDiagonal ? 0.65 : 0.85)
 
         for (_, waveNode) in activeWaveNodes {
             let local = convert(scenePoint, to: waveNode)
@@ -629,6 +665,7 @@ final class GameScene: SKScene {
         return local.x >= -pad && local.x <= waveNode.waveWidth  + pad &&
                local.y >= -pad && local.y <= waveNode.waveHeight + pad
     }
+
 }
 
 // MARK: - WaveNode

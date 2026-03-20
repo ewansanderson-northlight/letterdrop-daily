@@ -2,6 +2,8 @@
 //  MainMenuView.swift
 //  Letter Drop
 //
+//  V2: DROP swipe animation · streak stat cards · URL brand link · sequential pulse
+//
 
 import SwiftUI
 import Combine
@@ -10,13 +12,21 @@ import Combine
 
 struct MainMenuView: View {
     @EnvironmentObject var gameState: GameState
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     @State private var appeared           = false
     @State private var showHowToPlay      = false
     @State private var showStats          = false
-    @State private var showAbout          = false
     @State private var showHomeShare      = false
-    @State private var buttonsHighlighted = false
+
+    // Sequential pulse states (How to Play → Stats → Share & Compete)
+    @State private var howToPlayHighlighted = false
+    @State private var statsHighlighted     = false
+    @State private var shareHighlighted     = false
+
+    // DROP swipe animation
+    @State private var dropSwipePhase: Int  = 0
+    @State private var dropSwipeAnimID      = UUID()
 
     var body: some View {
         ZStack {
@@ -34,29 +44,76 @@ struct MainMenuView: View {
                 bottomSection
             }
             .padding(.horizontal, 28)
-
-            // About overlay
-            if showAbout {
-                UnseriousAboutOverlay(isPresented: $showAbout)
-                    .transition(.opacity)
-                    .zIndex(100)
-            }
         }
         .onAppear {
             appeared = false
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 appeared = true
             }
-            // Pulse secondary buttons gold 3× after main animations settle
-            for i in 0..<3 {
-                let on  = 0.90 + Double(i) * 0.55
-                let off = on  + 0.32
-                DispatchQueue.main.asyncAfter(deadline: .now() + on)  { buttonsHighlighted = true  }
-                DispatchQueue.main.asyncAfter(deadline: .now() + off) { buttonsHighlighted = false }
+            if !reduceMotion {
+                startDropSwipeAnimation()
+                startPulseSequence()
             }
         }
         .sheet(isPresented: $showHowToPlay) { HowToPlaySheet() }
         .sheet(isPresented: $showStats)     { StatsSheet().environmentObject(gameState) }
+    }
+
+    // MARK: - DROP swipe animation
+
+    private func startDropSwipeAnimation() {
+        let id = UUID()
+        dropSwipeAnimID = id
+
+        func playOnce(after delay: Double) {
+            // Each phase lights up one more tile (0=none, 1=D, 2=D-R trail, 3=D-R-O, 4=full)
+            let phaseOffsets: [Double] = [0.0, 0.28, 0.56, 0.84]
+            for (i, offset) in phaseOffsets.enumerated() {
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay + offset) {
+                    guard dropSwipeAnimID == id else { return }
+                    withAnimation(.easeOut(duration: 0.12)) {
+                        dropSwipePhase = i + 1
+                    }
+                }
+            }
+            // Reset after holding all tiles lit for ~1s
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay + 1.9) {
+                guard dropSwipeAnimID == id else { return }
+                withAnimation(.easeOut(duration: 0.35)) {
+                    dropSwipePhase = 0
+                }
+                // Repeat every ~9 seconds
+                playOnce(after: 9.0)
+            }
+        }
+
+        // First play starts once the tiles have animated in (~0.65s after appear)
+        playOnce(after: 0.65)
+    }
+
+    // MARK: - Sequential pulse sequence
+
+    private func startPulseSequence() {
+        // Starts after the DROP animation has played its first cycle (~1.8s)
+        let base = 1.8
+        DispatchQueue.main.asyncAfter(deadline: .now() + base) {
+            withAnimation(.easeInOut(duration: 0.20)) { howToPlayHighlighted = true }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                withAnimation(.easeInOut(duration: 0.20)) { howToPlayHighlighted = false }
+                withAnimation(.easeInOut(duration: 0.20)) { statsHighlighted = true }
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    withAnimation(.easeInOut(duration: 0.20)) { statsHighlighted = false }
+                    // Share & Compete gets the most prominent pulse (~0.7s)
+                    withAnimation(.easeInOut(duration: 0.20)) { shareHighlighted = true }
+
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                        withAnimation(.easeInOut(duration: 0.25)) { shareHighlighted = false }
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Title section
@@ -72,15 +129,58 @@ struct MainMenuView: View {
                 .offset(y: appeared ? 0 : -20)
                 .animation(.spring(response: 0.5, dampingFraction: 0.72), value: appeared)
 
-            // "DROP" — spelled as individual game tiles, staggered drop-in
-            HStack(spacing: 8) {
+            // "DROP" — individual game tiles with swipe trail overlay
+            let tileW: CGFloat = 64
+            let tileSpacing: CGFloat = 8
+
+            HStack(spacing: tileSpacing) {
                 ForEach(Array("DROP".enumerated()), id: \.offset) { index, char in
-                    DropTitleTile(letter: String(char), index: index, appeared: appeared)
+                    DropTitleTile(
+                        letter:        String(char),
+                        index:         index,
+                        appeared:      appeared,
+                        swipeSelected: dropSwipePhase >= index + 1
+                    )
                 }
             }
+            .overlay(
+                // Gold swipe trail connecting tiles as each is "selected"
+                Canvas { ctx, size in
+                    guard dropSwipePhase >= 2 else { return }
+                    let step = tileW + tileSpacing
+                    let cy   = size.height / 2
+                    let centers = (0..<4).map { i in
+                        CGPoint(x: CGFloat(i) * step + tileW / 2, y: cy)
+                    }
+                    var path = Path()
+                    path.move(to: centers[0])
+                    for i in 1..<min(dropSwipePhase, 4) {
+                        path.addLine(to: centers[i])
+                    }
+                    // Outer glow pass
+                    ctx.stroke(
+                        path,
+                        with: .color(Constants.Colors.gold.opacity(0.30)),
+                        style: StrokeStyle(lineWidth: 14, lineCap: .round, lineJoin: .round)
+                    )
+                    // Inner glow pass
+                    ctx.stroke(
+                        path,
+                        with: .color(Constants.Colors.gold.opacity(0.55)),
+                        style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round)
+                    )
+                    // Core line
+                    ctx.stroke(
+                        path,
+                        with: .color(Constants.Colors.gold),
+                        style: StrokeStyle(lineWidth: 4.5, lineCap: .round, lineJoin: .round)
+                    )
+                }
+                .allowsHitTesting(false)
+            )
 
             // Tagline
-            Text("Build words before they fall away.")
+            Text("Swipe Fast, Play Daily.")
                 .font(Constants.Fonts.rounded(15, weight: .regular))
                 .foregroundStyle(Constants.Colors.tile.opacity(0.5))
                 .multilineTextAlignment(.center)
@@ -112,13 +212,12 @@ struct MainMenuView: View {
 
     private var bottomSection: some View {
         VStack(spacing: 0) {
-            // Best score badge — only show after first game
-            if gameState.bestScore > 0 {
-                BestScoreBadge(score: gameState.bestScore)
-                    .padding(.bottom, 20)
-                    .opacity(appeared ? 1 : 0)
-                    .animation(.easeOut(duration: 0.3).delay(0.4), value: appeared)
-            }
+
+            // Best Score + Streak Days stat cards (always visible)
+            StatCardRow(bestScore: gameState.bestScore, streakDays: gameState.currentStreak)
+                .padding(.bottom, 20)
+                .opacity(appeared ? 1 : 0)
+                .animation(.easeOut(duration: 0.3).delay(0.4), value: appeared)
 
             // Date chip
             DateChip()
@@ -147,7 +246,7 @@ struct MainMenuView: View {
             .offset(y: appeared ? 0 : 12)
             .animation(.spring(response: 0.45, dampingFraction: 0.7).delay(0.5), value: appeared)
 
-            // Share & Compete
+            // Share & Compete — pulses gold as climax of the sequence
             Button { showHomeShare = true } label: {
                 HStack(spacing: 7) {
                     Image(systemName: "square.and.arrow.up")
@@ -155,15 +254,35 @@ struct MainMenuView: View {
                     Text("Share & Compete!")
                         .font(Constants.Fonts.rounded(15, weight: .semibold))
                 }
-                .foregroundStyle(Constants.Colors.tile.opacity(0.45))
+                .foregroundStyle(
+                    shareHighlighted
+                        ? Constants.Colors.gold
+                        : Constants.Colors.tile.opacity(0.45)
+                )
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 14)
-                        .strokeBorder(Constants.Colors.tile.opacity(0.12), lineWidth: 1)
+                        .fill(shareHighlighted
+                              ? Constants.Colors.gold.opacity(0.10)
+                              : Color.clear)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .strokeBorder(
+                            shareHighlighted
+                                ? Constants.Colors.gold.opacity(0.70)
+                                : Constants.Colors.tile.opacity(0.12),
+                            lineWidth: shareHighlighted ? 1.5 : 1
+                        )
+                )
+                .shadow(
+                    color: shareHighlighted ? Constants.Colors.gold.opacity(0.35) : .clear,
+                    radius: 10
                 )
             }
             .buttonStyle(.plain)
+            .animation(.easeInOut(duration: 0.22), value: shareHighlighted)
             .padding(.bottom, 20)
             .opacity(appeared ? 1 : 0)
             .animation(.easeOut(duration: 0.3).delay(0.55), value: appeared)
@@ -177,14 +296,15 @@ struct MainMenuView: View {
                 )
             }
 
-            // Secondary row
+            // Secondary row — How to Play & Stats with sequential pulse
             HStack(spacing: 40) {
                 MenuSecondaryButton(title: "How to Play", icon: "questionmark.circle",
-                                    highlighted: buttonsHighlighted) {
+                                    highlighted: howToPlayHighlighted) {
                     showHowToPlay = true
+                    AnalyticsManager.shared.track(.howToPlayViewed)
                 }
                 MenuSecondaryButton(title: "Stats", icon: "chart.bar",
-                                    highlighted: buttonsHighlighted) {
+                                    highlighted: statsHighlighted) {
                     showStats = true
                 }
             }
@@ -192,10 +312,15 @@ struct MainMenuView: View {
             .opacity(appeared ? 1 : 0)
             .animation(.easeOut(duration: 0.3).delay(0.6), value: appeared)
 
-            Button { showAbout = true } label: {
+            // Brand link — tapping opens unserious.games in browser
+            Button {
+                if let url = URL(string: "https://unserious.games") {
+                    UIApplication.shared.open(url)
+                }
+            } label: {
                 Text("by unserious.games")
-                    .font(Constants.Fonts.rounded(13, weight: .medium))
-                    .foregroundStyle(Constants.Colors.tile.opacity(0.18))
+                    .font(Constants.Fonts.rounded(15, weight: .medium))
+                    .foregroundStyle(Constants.Colors.tile.opacity(0.28))
             }
             .buttonStyle(.plain)
             .padding(.bottom, 36)
@@ -207,20 +332,27 @@ struct MainMenuView: View {
 
 // MARK: - Drop title tile
 
-/// One of the four cream letter tiles that spell "DROP" in the title.
+/// One of the four cream letter tiles spelling "DROP" in the title.
+/// `swipeSelected` switches the tile to a gold fill, mimicking in-game selection.
 private struct DropTitleTile: View {
     let letter: String
     let index: Int
     let appeared: Bool
+    let swipeSelected: Bool
 
-    // Each tile drops down sequentially
     private var delay: Double { 0.15 + Double(index) * 0.07 }
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 13)
-                .fill(Constants.Colors.tile)
-                .shadow(color: Constants.Colors.tileShadow.opacity(0.45), radius: 4, x: 2, y: 4)
+                .fill(swipeSelected ? Constants.Colors.gold : Constants.Colors.tile)
+                .shadow(
+                    color: swipeSelected
+                        ? Constants.Colors.gold.opacity(0.55)
+                        : Constants.Colors.tileShadow.opacity(0.45),
+                    radius: swipeSelected ? 10 : 4,
+                    x: 2, y: 4
+                )
 
             Text(letter)
                 .font(Constants.Fonts.rounded(38, weight: .bold))
@@ -233,28 +365,53 @@ private struct DropTitleTile: View {
             .spring(response: 0.48, dampingFraction: 0.6).delay(delay),
             value: appeared
         )
+        .animation(.easeOut(duration: 0.14), value: swipeSelected)
     }
 }
 
-// MARK: - Best score badge
+// MARK: - Stat card row (Best Score + Streak Days)
 
-private struct BestScoreBadge: View {
-    let score: Int
+private struct StatCardRow: View {
+    let bestScore: Int
+    let streakDays: Int
 
     var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "star.fill")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Constants.Colors.success)
-            Text("Best  \(score) pts")
-                .font(Constants.Fonts.rounded(13, weight: .semibold))
-                .foregroundStyle(Constants.Colors.tile.opacity(0.65))
+        HStack(spacing: 10) {
+            StatCard(value: "\(bestScore)", label: "Best Score", icon: "star.fill",
+                     iconColor: Constants.Colors.success)
+            StatCard(value: "\(streakDays)", label: "Streak Days", icon: "flame.fill",
+                     iconColor: Constants.Colors.gold)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 7)
-        .background(
-            Capsule()
-                .strokeBorder(Constants.Colors.tile.opacity(0.12), lineWidth: 1)
+    }
+}
+
+private struct StatCard: View {
+    let value: String
+    let label: String
+    let icon: String
+    let iconColor: Color
+
+    var body: some View {
+        VStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(iconColor)
+            Text(value)
+                .font(Constants.Fonts.rounded(40, weight: .bold))
+                .foregroundStyle(Constants.Colors.tile)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+            Text(label)
+                .font(Constants.Fonts.rounded(13, weight: .medium))
+                .foregroundStyle(Constants.Colors.tile.opacity(0.50))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
         )
     }
 }
@@ -317,161 +474,122 @@ private struct MenuPrimaryButtonStyle: ButtonStyle {
 
 // MARK: - Background drifting 5×5 grids
 
-private struct MenuBackground: View {
-    // x-fraction, fall duration, initial-y fraction (0=top, 1=bottom)
-    private let grids: [(CGFloat, Double, CGFloat)] = [
-        (0.15, 16.0, 0.0),
-        (0.48, 12.0, 0.55),
-        (0.78, 18.0, 0.25),
-        (0.93, 10.5, 0.75),
-    ]
+// MARK: - Background (falling grid watermark)
 
+private struct MenuBackground: View {
     var body: some View {
         GeometryReader { geo in
-            ForEach(grids.indices, id: \.self) { i in
-                let (xFrac, duration, startFrac) = grids[i]
-                DriftingGridSilhouette(
-                    x:        geo.size.width * xFrac,
-                    duration: duration,
-                    startY:   -60 + (geo.size.height + 120) * startFrac,
-                    endY:     geo.size.height + 60
-                )
-            }
+            FallingGridBlock(screenSize: geo.size)
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
     }
 }
 
-private struct DriftingGridSilhouette: View {
-    let x: CGFloat
-    let duration: Double
-    let startY: CGFloat
-    let endY: CGFloat
+/// A single 5×5 ghost grid that falls continuously down the centre of the screen.
+/// Tile dimensions match the in-game formula exactly. The inter-block gap is
+/// achieved geometrically: the block starts far enough above the viewport that
+/// it spends `gapDuration` seconds invisible before entering from the top —
+/// so one constant-speed `.repeatForever` animation handles everything.
+private struct FallingGridBlock: View {
 
-    private let cellSize: CGFloat = 9
-    private let cellGap:  CGFloat = 2
-    private let n = 5
+    let screenSize: CGSize
 
-    @State private var y: CGFloat
+    @Environment(\.scenePhase) private var scenePhase
 
-    init(x: CGFloat, duration: Double, startY: CGFloat, endY: CGFloat) {
-        self.x = x; self.duration = duration; self.startY = startY; self.endY = endY
-        _y = State(initialValue: startY)
+    // MARK: Geometry (matches GameScene's tile sizing formula)
+    private let tileSize  : CGFloat
+    private let blockSide : CGFloat   // width == height (square 5×5 grid)
+
+    // MARK: Timing
+    private let fallDuration : Double = 20.0  // seconds to traverse screen top→bottom
+    private let gapDuration  : Double = 5.0   // seconds block is hidden above screen
+    private var totalDuration: Double { fallDuration + gapDuration }
+
+    // MARK: Y positions (block centre)
+    private let startY: CGFloat   // well above screen — block is invisible here
+    private let endY  : CGFloat   // just below screen
+
+    // MARK: Fade zone (screen-space fractions, top→bottom)
+    // Starts where the block reaches the top of the stat cards (~59% down),
+    // fades to fully transparent over 175 pt — roughly Play button level.
+    private var fadeTopFrac: Double { 0.59 }
+    private var fadeBotFrac: Double { fadeTopFrac + 175 / Double(screenSize.height) }
+
+    @State private var offsetY: CGFloat
+
+    init(screenSize: CGSize) {
+        self.screenSize = screenSize
+
+        let gap    = Constants.Game.tileGap
+        let margin = Constants.Game.tileMargin
+        let ts     = (screenSize.width - 2 * margin - 4 * gap) / 5
+        let side   = 5 * ts + 4 * gap
+        tileSize  = ts
+        blockSide = side
+
+        // Speed so the visible traversal takes exactly `fallDuration` seconds.
+        // The block also travels `gapDuration` seconds of distance while off-screen
+        // above, which creates the pause between repetitions with zero extra timers.
+        let speed     = Double(screenSize.height + side) / fallDuration
+        let gapTravel = CGFloat(speed * gapDuration)
+        let sy        = -(side / 2) - gapTravel
+
+        startY  = sy
+        endY    = screenSize.height + side / 2
+        _offsetY = State(initialValue: sy)
     }
 
     var body: some View {
-        VStack(spacing: cellGap) {
-            ForEach(0..<n, id: \.self) { _ in
-                HStack(spacing: cellGap) {
-                    ForEach(0..<n, id: \.self) { _ in
-                        RoundedRectangle(cornerRadius: 2)
+        VStack(spacing: Constants.Game.tileGap) {
+            ForEach(0..<5, id: \.self) { _ in
+                HStack(spacing: Constants.Game.tileGap) {
+                    ForEach(0..<5, id: \.self) { _ in
+                        RoundedRectangle(cornerRadius: Constants.Game.tileCorner)
                             .fill(Constants.Colors.tile)
-                            .frame(width: cellSize, height: cellSize)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: Constants.Game.tileCorner)
+                                    .strokeBorder(Constants.Colors.tile, lineWidth: 1)
+                            )
+                            .frame(width: tileSize, height: tileSize)
                     }
                 }
             }
         }
-        .opacity(0.07)
-        .position(x: x, y: y)
-        .onAppear {
-            withAnimation(
-                .linear(duration: duration * (1.0 - Double((startY + 60) / (endY + 60))))
-                .repeatForever(autoreverses: false)
-            ) {
-                y = endY
-            }
-        }
-    }
-}
-
-// MARK: - Unserious Games about overlay
-
-private struct UnseriousAboutOverlay: View {
-    @Binding var isPresented: Bool
-
-    @State private var cardAppeared = false
-    @State private var dotPhase     = 0
-
-    private var dotsString: String {
-        String(repeating: ".", count: dotPhase + 1)
-    }
-
-    var body: some View {
-        ZStack {
-            // Dimmed backdrop
-            Color.black.opacity(0.60)
-                .ignoresSafeArea()
-                .onTapGesture { dismiss() }
-
-            // Card
-            VStack(spacing: 0) {
-                // Close button row
-                HStack {
-                    Spacer()
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(Constants.Colors.tileText.opacity(0.35))
-                            .padding(9)
-                            .background(Constants.Colors.tileText.opacity(0.08), in: Circle())
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.trailing, 16)
-                .padding(.top, 16)
-
-                // Logo
-                Image("Unserious Games Logo")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 210)
-                    .padding(.top, 4)
-                    .padding(.bottom, 4)
-
-                // Tagline
-                Text("Human ideas, robot tools")
-                    .font(Constants.Fonts.rounded(15, weight: .semibold))
-                    .foregroundStyle(Constants.Colors.tileText.opacity(0.70))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 10)
-
-                // Animated "More coming soon..."
-                HStack(spacing: 0) {
-                    Text("More coming soon")
-                        .font(Constants.Fonts.rounded(13, weight: .regular))
-                        .foregroundStyle(Constants.Colors.tileText.opacity(0.38))
-                    Text(dotsString)
-                        .font(Constants.Fonts.rounded(13, weight: .regular))
-                        .foregroundStyle(Constants.Colors.tileText.opacity(0.38))
-                        .frame(minWidth: 18, alignment: .leading)
-                        .animation(.none, value: dotsString)
-                }
-                .padding(.bottom, 32)
-            }
-            .background(Constants.Colors.tile, in: RoundedRectangle(cornerRadius: 26))
-            .padding(.horizontal, 36)
-            .shadow(color: .black.opacity(0.25), radius: 24, x: 0, y: 8)
-            .scaleEffect(cardAppeared ? 1.0 : 0.72)
-            .opacity(cardAppeared ? 1.0 : 0)
-        }
-        .onAppear {
-            withAnimation(.spring(response: 0.44, dampingFraction: 0.60)) {
-                cardAppeared = true
-            }
-        }
-        .onReceive(Timer.publish(every: 0.48, on: .main, in: .common).autoconnect()) { _ in
-            dotPhase = (dotPhase + 1) % 3
+        .opacity(0.22)
+        .position(x: screenSize.width / 2, y: offsetY)
+        // Screen-space gradient mask: opaque above the stat cards, fades to
+        // fully transparent ~175 pt lower (≈ Play button level).
+        // Because .position() makes the view's layout frame equal the full
+        // parent frame, this gradient is fixed in screen coordinates — the
+        // block fades out as it descends into the lower UI zone regardless
+        // of where it currently sits in its fall path.
+        .mask(
+            LinearGradient(
+                stops: [
+                    .init(color: .white, location: 0),
+                    .init(color: .white, location: fadeTopFrac),
+                    .init(color: .clear,  location: fadeBotFrac),
+                    .init(color: .clear,  location: 1),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .onAppear { beginFall() }
+        .onChange(of: scenePhase) { _, phase in
+            // Restart cleanly from off-screen when returning from background
+            if phase == .active { beginFall() }
         }
     }
 
-    private func dismiss() {
-        withAnimation(.easeOut(duration: 0.16)) {
-            cardAppeared = false
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
-            isPresented = false
+    /// Snaps the block to `startY` without animation, then starts the linear fall.
+    private func beginFall() {
+        var snap = Transaction(animation: nil)
+        snap.disablesAnimations = true
+        withTransaction(snap) { offsetY = startY }
+        withAnimation(.linear(duration: totalDuration).repeatForever(autoreverses: false)) {
+            offsetY = endY
         }
     }
 }
@@ -485,7 +603,7 @@ private struct UnseriousAboutOverlay: View {
     }
 }
 
-#Preview("With best score") {
+#Preview("With best score and streak") {
     let state = GameState()
     state.bestScore = 74
     state.gamesPlayed = 7

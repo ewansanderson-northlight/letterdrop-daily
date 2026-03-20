@@ -28,25 +28,26 @@ struct GamePlayView: View {
                     .allowsHitTesting(false)
             }
 
-            // Best word flash
-            if let flash = gameState.bestWordFlash {
-                BestWordOverlay(flash: flash)
-                    .transition(.opacity)
-                    .allowsHitTesting(false)
-            }
-
             // Ready-Set-Go countdown
             if let count = gameState.countdownValue {
                 CountdownOverlay(value: count)
                     .allowsHitTesting(false)
             }
 
-            // Word preview — above the active block
-            if !gameState.currentSelection.isEmpty {
+            // Word preview: live swiping OR frozen submitted tiles (with best word below)
+            let previewWord = !gameState.currentSelection.isEmpty
+                ? gameState.currentSelection
+                : (gameState.submittedWordDisplay?.word ?? "")
+            let previewStreakBonus = !gameState.currentSelection.isEmpty
+                ? gameState.currentStreakBonus
+                : (gameState.submittedWordDisplay?.streakBonus ?? 0)
+
+            if !previewWord.isEmpty {
                 WordPreviewOverlay(
-                    word:          gameState.currentSelection,
-                    multiplier:    gameState.currentMultiplier,
-                    blockTopUIKitY: gameState.blockTopUIKitY
+                    word:           previewWord,
+                    streakBonus:    previewStreakBonus,
+                    blockTopUIKitY: gameState.blockTopUIKitY,
+                    bestWordFlash:  gameState.currentSelection.isEmpty ? gameState.bestWordFlash : nil
                 )
                 .transition(.opacity.combined(with: .scale(scale: 0.94, anchor: .bottom)))
                 .allowsHitTesting(false)
@@ -69,33 +70,29 @@ struct GamePlayView: View {
                     .allowsHitTesting(false)
             }
 
-            // Combo boost flash — centre screen on multiplier increase
-            if let boost = gameState.comboBoostFlash {
-                ComboBoostOverlay(multiplier: boost)
-                    .transition(.opacity.combined(with: .scale(scale: 0.75)))
-                    .allowsHitTesting(false)
-            }
         }
         .animation(.easeInOut(duration: 0.18), value: gameState.showMissFeedback)
-        .animation(.easeOut(duration: 0.55), value: gameState.bestWordFlash != nil)
         .animation(.easeOut(duration: 0.25),   value: gameState.countdownValue)
         .animation(.spring(response: 0.28, dampingFraction: 0.75),
                    value: gameState.currentSelection.isEmpty)
+        .animation(.spring(response: 0.28, dampingFraction: 0.75),
+                   value: gameState.submittedWordDisplay != nil)
         .animation(.easeOut(duration: 0.55),
                    value: gameState.isSlowMoActive)
         .animation(.spring(response: 0.28, dampingFraction: 0.70),
                    value: gameState.waveBanner != nil)
-        .animation(.spring(response: 0.30, dampingFraction: 0.65),
-                   value: gameState.comboBoostFlash != nil)
     }
 }
 
 // MARK: - Word preview overlay (above the active block)
+// Shows the live swipe preview OR the frozen tile row after submit.
+// bestWordFlash is only passed when the word is frozen (not during live swiping).
 
 private struct WordPreviewOverlay: View {
     let word          : String
-    let multiplier    : Int
+    let streakBonus   : Int
     let blockTopUIKitY: CGFloat
+    var bestWordFlash : GameState.BestWordFlash? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -104,7 +101,20 @@ private struct WordPreviewOverlay: View {
                 .frame(height: blockTopUIKitY > 0
                        ? max(140, blockTopUIKitY - 64)
                        : 280)
-            SelectionPreview(word: word, multiplier: multiplier)
+            VStack(spacing: 8) {
+                SelectionPreview(word: word, streakBonus: streakBonus)
+
+                // Best word badge floats in below the frozen tile row
+                if let flash = bestWordFlash {
+                    BestWordBadge(flash: flash)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .bottom).combined(with: .opacity),
+                            removal:   .opacity
+                        ))
+                }
+            }
+            .animation(.easeOut(duration: 0.35), value: bestWordFlash != nil)
+
             Spacer()
         }
     }
@@ -122,11 +132,18 @@ private struct CountdownOverlay: View {
         ZStack {
             Color.black.opacity(0.40).ignoresSafeArea()
 
-            Text(value == 0 ? "GO" : "\(value)")
-                .font(Constants.Fonts.rounded(100, weight: .bold))
-                .foregroundStyle(value == 0 ? Constants.Colors.gold : Constants.Colors.tile)
-                .scaleEffect(scale)
-                .opacity(opacity)
+            VStack(spacing: 28) {
+                Text(value == 0 ? "GO" : "\(value)")
+                    .font(Constants.Fonts.rounded(value == 0 ? 100 : 78, weight: .bold))
+                    .foregroundStyle(value == 0 ? Constants.Colors.gold : Constants.Colors.tile)
+                    .scaleEffect(scale)
+                    .opacity(opacity)
+
+                if value != 0 {
+                    SwipeTutorialView()
+                        .transition(.opacity.animation(.easeInOut(duration: 0.2)))
+                }
+            }
         }
         .onAppear { pop() }
         .onChange(of: value) { scale = 0.35; opacity = 0; pop() }
@@ -139,30 +156,181 @@ private struct CountdownOverlay: View {
     }
 }
 
-// MARK: - Best word flash overlay
+// MARK: - Swipe tutorial (animated mini-grid shown during 3-2-1 countdown)
 
-private struct BestWordOverlay: View {
+private struct SwipeTutorialView: View {
+
+    // 5×5 grid — diagonal (0,0)→(1,1)→(2,2)→(3,3)→(4,4) spells S-W-I-P-E
+    private static let letters: [[String]] = [
+        ["S", "R", "A", "T", "N"],
+        ["L", "W", "O", "E", "D"],
+        ["B", "H", "I", "G", "M"],
+        ["C", "F", "K", "P", "U"],
+        ["V", "Y", "Z", "X", "E"],
+    ]
+    private static let swipePath: [(row: Int, col: Int)] = [
+        (0,0),(1,1),(2,2),(3,3),(4,4)
+    ]
+
+    private let tileSize : CGFloat = 44
+    private let gap      : CGFloat = 6
+    private var spacing  : CGFloat { tileSize + gap }          // 50 pt between centres
+    private var gridSize : CGFloat { 5 * tileSize + 4 * gap }  // 244 pt square
+
+    // Play-once timing
+    //   Phase 1 — trail grows across 4 segments  : 4 × 0.275 = 1.100 s
+    //   Phase 2 — hold all tiles lit             :             0.100 s
+    //   Phase 3 — strikethrough sweeps in        :             0.220 s
+    //   Phase 4 — hold final state forever       :             ∞
+    private let segInterval : Double = 0.275
+    private let holdTiles   : Double = 0.100
+    private let strikeTime  : Double = 0.220
+
+    @State private var startDate: Date = .now
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { tl in
+            let elapsed  = tl.date.timeIntervalSince(startDate)
+            let progress = elapsed
+            let s = animState(progress)
+
+            VStack(spacing: 14) {
+                // ── Grid + trail ─────────────────────────────────────────
+                ZStack {
+                    VStack(spacing: gap) {
+                        ForEach(0..<5, id: \.self) { row in
+                            HStack(spacing: gap) {
+                                ForEach(0..<5, id: \.self) { col in
+                                    let pidx = Self.swipePath.firstIndex { $0.row == row && $0.col == col }
+                                    MiniTile(
+                                        letter: Self.letters[row][col],
+                                        isLit:  pidx != nil && pidx! < s.litCount
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Glowing trail line
+                    Canvas { ctx, _ in
+                        guard s.trailProg > 0.001 else { return }
+                        let path  = buildTrail(s.trailProg)
+                        let thick = StrokeStyle(lineWidth: 10,  lineCap: .round, lineJoin: .round)
+                        let thin  = StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round)
+                        ctx.stroke(path, with: .color(Constants.Colors.gold.opacity(0.28)), style: thick)
+                        ctx.stroke(path, with: .color(Constants.Colors.gold),               style: thin)
+                    }
+                    .frame(width: gridSize, height: gridSize)
+                    .allowsHitTesting(false)
+                }
+                .frame(width: gridSize, height: gridSize)
+
+                // ── "SWIPE!" label with expanding strikethrough ───────────
+                Text("SWIPE!")
+                    .font(Constants.Fonts.rounded(18, weight: .semibold))
+                    .foregroundStyle(Constants.Colors.tile.opacity(0.88))
+                    .overlay(alignment: .center) {
+                        Rectangle()
+                            .fill(Constants.Colors.gold)
+                            .frame(height: 2)
+                            .scaleEffect(x: s.strike, anchor: .leading)
+                    }
+            }
+            .opacity(s.opacity)
+        }
+        .onAppear { startDate = .now }
+    }
+
+    // MARK: - Animation state
+
+    private typealias S = (litCount: Int, trailProg: Double, strike: CGFloat, opacity: Double)
+
+    private func animState(_ p: Double) -> S {
+        let p1 = 4.0 * segInterval  // 1.100 — trail fully grown
+        let p2 = p1  + holdTiles    // 1.200
+        let p3 = p2  + strikeTime   // 1.420 — strikethrough complete; hold forever after
+
+        if p < p1 {
+            let trail = min(4.0, p / segInterval)
+            return (min(5, Int(trail) + 1), trail, 0, 1)
+        } else if p < p2 {
+            return (5, 4.0, 0, 1)
+        } else if p < p3 {
+            return (5, 4.0, CGFloat((p - p2) / strikeTime), 1)
+        } else {
+            return (5, 4.0, 1, 1)  // final state — all lit, strikethrough complete
+        }
+    }
+
+    // MARK: - Trail path
+
+    private func tileCenter(_ idx: Int) -> CGPoint {
+        let c = Self.swipePath[idx]
+        return CGPoint(
+            x: CGFloat(c.col) * spacing + tileSize / 2,
+            y: CGFloat(c.row) * spacing + tileSize / 2
+        )
+    }
+
+    private func buildTrail(_ trail: Double) -> Path {
+        var path = Path()
+        path.move(to: tileCenter(0))
+        let full    = min(Int(trail), 4)
+        let partial = trail - Double(Int(trail))
+        for i in 0..<full {
+            path.addLine(to: tileCenter(i + 1))
+        }
+        if full < 4 {
+            let a = tileCenter(full)
+            let b = tileCenter(full + 1)
+            path.addLine(to: CGPoint(
+                x: a.x + (b.x - a.x) * partial,
+                y: a.y + (b.y - a.y) * partial
+            ))
+        }
+        return path
+    }
+}
+
+// MARK: - Mini tile (tutorial grid)
+
+private struct MiniTile: View {
+    let letter: String
+    let isLit : Bool
+
+    var body: some View {
+        Text(letter)
+            .font(Constants.Fonts.rounded(15, weight: .bold))
+            .foregroundStyle(isLit ? Constants.Colors.tileText : Constants.Colors.tile.opacity(0.60))
+            .frame(width: 44, height: 44)
+            .background(
+                RoundedRectangle(cornerRadius: 9)
+                    .fill(isLit ? Constants.Colors.tile : Constants.Colors.trayBackground)
+            )
+            .shadow(color: isLit ? Constants.Colors.gold.opacity(0.45) : .clear, radius: 5)
+    }
+}
+
+// MARK: - Best word badge (floats in below the frozen tile preview)
+
+private struct BestWordBadge: View {
     let flash: GameState.BestWordFlash
 
     var body: some View {
-        VStack {
-            Spacer()
-            HStack(spacing: 5) {
-                Text("Best was:")
-                    .font(Constants.Fonts.rounded(13, weight: .regular))
-                    .foregroundStyle(Constants.Colors.tile.opacity(0.65))
-                Text(flash.word)
-                    .font(Constants.Fonts.rounded(13, weight: .bold))
-                    .foregroundStyle(Constants.Colors.tile)
-                Text("+\(flash.score)")
-                    .font(Constants.Fonts.rounded(13, weight: .semibold))
-                    .foregroundStyle(Constants.Colors.gold)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
-            .background(Constants.Colors.trayBackground, in: Capsule())
-            .padding(.bottom, 110)
+        HStack(spacing: 5) {
+            Text("Best was:")
+                .font(Constants.Fonts.rounded(13, weight: .regular))
+                .foregroundStyle(Constants.Colors.tile.opacity(0.65))
+            Text(flash.word)
+                .font(Constants.Fonts.rounded(13, weight: .bold))
+                .foregroundStyle(Constants.Colors.tile)
+            Text("+\(flash.score)")
+                .font(Constants.Fonts.rounded(13, weight: .semibold))
+                .foregroundStyle(Constants.Colors.gold)
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+        .background(Constants.Colors.trayBackground, in: Capsule())
     }
 }
 
@@ -242,52 +410,53 @@ private struct WaveBannerOverlay: View {
     @State private var scale:   CGFloat = 0.7
     @State private var opacity: Double  = 0
 
+    private var waveNumber: Int {
+        text.components(separatedBy: " ").last.flatMap(Int.init) ?? 1
+    }
+
+    private var difficultyLabel: String {
+        switch waveNumber {
+        case 1, 2: return "EASY"
+        case 3, 4: return "TRICKY"
+        default:   return "SAVAGE"
+        }
+    }
+
+    private var difficultyColor: Color {
+        switch waveNumber {
+        case 1, 2: return Constants.Colors.success
+        case 3, 4: return Constants.Colors.gold
+        default:   return Constants.Colors.failure
+        }
+    }
+
     var body: some View {
         VStack {
             Spacer().frame(height: 160)
-            Text(text)
-                .font(Constants.Fonts.rounded(24, weight: .bold))
-                .foregroundStyle(Constants.Colors.tile)
-                .tracking(5)
-                .padding(.horizontal, 28)
-                .padding(.vertical, 11)
-                .background(Capsule().fill(Constants.Colors.trayBackground.opacity(0.90)))
-                .scaleEffect(scale)
-                .opacity(opacity)
-                .onAppear {
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.62)) {
-                        scale = 1.0; opacity = 1.0
-                    }
-                }
-            Spacer()
-        }
-    }
-}
-
-// MARK: - Combo boost overlay
-
-private struct ComboBoostOverlay: View {
-    let multiplier: Int
-
-    @State private var scale:   CGFloat = 0.6
-    @State private var opacity: Double  = 0
-
-    var body: some View {
-        VStack(spacing: 2) {
-            Text("COMBO BOOST")
-                .font(Constants.Fonts.rounded(13, weight: .semibold))
-                .foregroundStyle(Constants.Colors.tile.opacity(0.65))
-                .tracking(3)
-            Text("×\(multiplier)")
-                .font(Constants.Fonts.rounded(76, weight: .bold))
-                .foregroundStyle(Constants.Colors.gold)
-        }
-        .scaleEffect(scale)
-        .opacity(opacity)
-        .onAppear {
-            withAnimation(.spring(response: 0.30, dampingFraction: 0.62)) {
-                scale = 1.0; opacity = 1.0
+            HStack(spacing: 0) {
+                Text(text)
+                    .font(Constants.Fonts.rounded(24, weight: .bold))
+                    .foregroundStyle(Constants.Colors.tile)
+                    .tracking(5)
+                Text("  ·  ")
+                    .font(Constants.Fonts.rounded(24, weight: .bold))
+                    .foregroundStyle(Constants.Colors.tile.opacity(0.35))
+                Text(difficultyLabel)
+                    .font(Constants.Fonts.rounded(17, weight: .semibold))
+                    .foregroundStyle(difficultyColor)
+                    .tracking(3)
             }
+            .padding(.horizontal, 28)
+            .padding(.vertical, 11)
+            .background(Capsule().fill(Constants.Colors.trayBackground.opacity(0.90)))
+            .scaleEffect(scale)
+            .opacity(opacity)
+            .onAppear {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.62)) {
+                    scale = 1.0; opacity = 1.0
+                }
+            }
+            Spacer()
         }
     }
 }
@@ -349,7 +518,7 @@ struct GameHUDView: View {
                     )
                     HStack {
                         Spacer()
-                        MultiplierBadge(multiplier: gameState.currentMultiplier)
+                        StreakBadge(consecutiveSolves: gameState.consecutiveSolves)
                             .padding(.trailing, 20)
                     }
                 }
@@ -437,10 +606,12 @@ private struct TimerView: View {
     private var isBank   : Bool   { phase == .banked }
     private var display  : Double { isBank ? bankedTime : blockTime }
     private var displaySeconds: Int { max(0, Int(ceil(display))) }
-    private var isWarning: Bool { phase == .block && blockTime <= 15 && blockTime > 5 }
-    private var isUrgent : Bool { phase == .block && blockTime <= 5 }
+    private var isWarning: Bool { phase == .block && blockTime <= 10 && blockTime > 3 }
+    private var isUrgent : Bool { phase == .block && blockTime <= 3 }
 
-    @State private var pulse = false
+    @State private var pulse           = false
+    @State private var spikeScale      : CGFloat = 1.0
+    @State private var firedThresholds : Set<Int> = []
 
     var body: some View {
         VStack(spacing: 2) {
@@ -459,6 +630,7 @@ private struct TimerView: View {
                             Constants.Colors.tile
             )
             .scaleEffect(pulse ? (isUrgent ? 1.12 : 1.06) : 1.0)
+            .scaleEffect(spikeScale)
             .animation(.easeInOut(duration: 0.2), value: isBank)
             .animation(.easeInOut(duration: 0.2), value: isWarning)
             .animation(.easeInOut(duration: 0.2), value: isUrgent)
@@ -492,6 +664,41 @@ private struct TimerView: View {
                 withAnimation(.default) { pulse = false }
             }
         }
+        // Reset fired set when a new block starts (phase leaves .none)
+        .onChange(of: phase) { _, newPhase in
+            if newPhase != .none { firedThresholds = [] }
+        }
+        // One-shot tension spikes — fires once per threshold per block
+        .onChange(of: blockTime) { _, newVal in
+            guard phase == .block else { return }
+            let secs = Int(ceil(newVal))
+            checkThresholds(secs)
+        }
+    }
+
+    private func checkThresholds(_ secs: Int) {
+        let entries: [(threshold: Int, peak: CGFloat, totalDuration: Double, haptic: () -> Void)] = [
+            (10, 1.10, 0.30, HapticManager.timerWarning),
+            (5,  1.15, 0.30, HapticManager.timerUrgent),
+            (3,  1.30, 0.25, HapticManager.timerCritical),
+            (2,  1.30, 0.25, HapticManager.timerCritical),
+            (1,  1.30, 0.25, HapticManager.timerCritical),
+        ]
+        for entry in entries where secs <= entry.threshold && !firedThresholds.contains(entry.threshold) {
+            firedThresholds.insert(entry.threshold)
+            fireSpike(peak: entry.peak, totalDuration: entry.totalDuration)
+            entry.haptic()
+        }
+    }
+
+    private func fireSpike(peak: CGFloat, totalDuration: Double) {
+        let riseTime = totalDuration * 0.30
+        withAnimation(.easeOut(duration: riseTime)) { spikeScale = peak }
+        DispatchQueue.main.asyncAfter(deadline: .now() + riseTime) {
+            withAnimation(.spring(response: totalDuration * 0.70, dampingFraction: 0.60)) {
+                spikeScale = 1.0
+            }
+        }
     }
 
     private func timeString(_ secs: Int) -> String {
@@ -515,22 +722,21 @@ private struct ScoreView: View {
     }
 }
 
-// MARK: - Multiplier badge
+// MARK: - Streak badge
 
-/// Shown when the player has a streak of 2+ consecutive solved waves.
-private struct MultiplierBadge: View {
-    let multiplier: Int
+/// Shown when the player has solved at least 1 wave in a row.
+private struct StreakBadge: View {
+    let consecutiveSolves: Int
 
     @State private var popped = false
 
     var body: some View {
-        if multiplier > 1 {
-            HStack(spacing: 3) {
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: 11, weight: .bold))
-                Text("×\(multiplier)")
-                    .font(Constants.Fonts.rounded(15, weight: .bold))
+        if consecutiveSolves >= 1 {
+            HStack(spacing: 4) {
+                Image(systemName: "flame.fill")
+                Text("\(consecutiveSolves)")
             }
+            .font(Constants.Fonts.rounded(15, weight: .bold))
             .foregroundStyle(Constants.Colors.tileText)
             .padding(.horizontal, 9)
             .padding(.vertical, 5)
@@ -539,7 +745,7 @@ private struct MultiplierBadge: View {
             .opacity(popped ? 1 : 0)
             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: popped)
             .onAppear { popped = true }
-            .onChange(of: multiplier) {
+            .onChange(of: consecutiveSolves) {
                 popped = false
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { popped = true }
             }
@@ -578,7 +784,7 @@ private struct WaveDotsView: View {
 
 private struct SelectionPreview: View {
     let word: String
-    let multiplier: Int
+    let streakBonus: Int
 
     var body: some View {
         HStack(spacing: 4) {
@@ -594,17 +800,15 @@ private struct SelectionPreview: View {
 
             let base = ScoreCalculator.score(for: word)
             if base > 0 {
-                let boosted = base * multiplier
-                Group {
-                    if multiplier > 1 {
-                        Text("+\(boosted)  ×\(multiplier)")
-                            .foregroundStyle(Constants.Colors.gold)
-                    } else {
-                        Text("+\(base)")
-                            .foregroundStyle(Constants.Colors.gold)
+                let total = base + streakBonus
+                HStack(spacing: 4) {
+                    Text(streakBonus > 0 ? "+\(total)" : "+\(base)")
+                    if streakBonus > 0 {
+                        Image(systemName: "flame.fill")
                     }
                 }
                 .font(Constants.Fonts.rounded(15, weight: .semibold))
+                .foregroundStyle(Constants.Colors.gold)
                 .padding(.leading, 4)
                 .transition(.opacity)
             }

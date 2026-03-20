@@ -281,7 +281,7 @@
 				DEVELOPMENT_TEAM = 48HL57D9BH;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Letter Drop/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Letter Drop";
+				INFOPLIST_KEY_CFBundleDisplayName = "Letter Drop Challenge";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.word-games";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -316,7 +316,7 @@
 				DEVELOPMENT_TEAM = 48HL57D9BH;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Letter Drop/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Letter Drop";
+				INFOPLIST_KEY_CFBundleDisplayName = "Letter Drop Challenge";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.word-games";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;

@@ -7,10 +7,12 @@ import PostHog
 enum GameEvent {
     case appOpened(date: String)
     case puzzleStarted(date: String)
-    case puzzleCompleted(date: String, attempts: Int, success: Bool)
-    case puzzleAbandoned(date: String, attempts: Int)
+    case puzzleCompleted(date: String, score: Int, maxScore: Int,
+                         wordsFound: Int, bestWord: String, wavesScored: Int)
+    case puzzleAbandoned(score: Int, waveIndex: Int)
     case resultShared(date: String)
     case howToPlayViewed
+    case streakUpdated(currentStreak: Int, isNewBest: Bool)
 
     var name: String {
         switch self {
@@ -20,6 +22,7 @@ enum GameEvent {
         case .puzzleAbandoned:  return "puzzle_abandoned"
         case .resultShared:     return "result_shared"
         case .howToPlayViewed:  return "how_to_play_viewed"
+        case .streakUpdated:    return "streak_updated"
         }
     }
 
@@ -29,14 +32,30 @@ enum GameEvent {
             return ["puzzle_date": date]
         case .puzzleStarted(let date):
             return ["puzzle_date": date]
-        case .puzzleCompleted(let date, let attempts, let success):
-            return ["puzzle_date": date, "attempts": attempts, "success": success]
-        case .puzzleAbandoned(let date, let attempts):
-            return ["puzzle_date": date, "attempts_before_quit": attempts]
+        case .puzzleCompleted(let date, let score, let maxScore,
+                              let wordsFound, let bestWord, let wavesScored):
+            return [
+                "puzzle_date":  date,
+                "score":        score,
+                "max_score":    maxScore,
+                "words_found":  wordsFound,
+                "best_word":    bestWord,
+                "waves_scored": wavesScored,
+            ]
+        case .puzzleAbandoned(let score, let waveIndex):
+            return [
+                "score_at_abandonment": score,
+                "wave_at_abandonment":  waveIndex,
+            ]
         case .resultShared(let date):
             return ["puzzle_date": date]
         case .howToPlayViewed:
             return [:]
+        case .streakUpdated(let currentStreak, let isNewBest):
+            return [
+                "current_streak": currentStreak,
+                "is_new_best":    isNewBest,
+            ]
         }
     }
 }
