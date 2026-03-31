@@ -6,41 +6,41 @@
       "grid" : [
         [
           "O",
-          "H",
-          "A",
-          "N",
-          "I"
+          "R",
+          "K",
+          "R",
+          "C"
         ],
         [
-          "H",
-          "I",
-          "S",
-          "D",
-          "N"
-        ],
-        [
+          "Q",
+          "E",
           "Y",
-          "D",
-          "H",
-          "A",
+          "O",
           "E"
         ],
         [
-          "A",
-          "S",
-          "K",
-          "T",
+          "O",
+          "I",
+          "N",
+          "E",
+          "U"
+        ],
+        [
+          "J",
+          "L",
+          "G",
+          "I",
           "M"
         ],
         [
-          "T",
+          "U",
+          "I",
           "N",
-          "E",
-          "P",
-          "E"
+          "S",
+          "N"
         ]
       ],
-      "targetWord" : "ANNATES"
+      "targetWord" : "CONGEE"
     },
     {
       "difficulty" : "amber",
@@ -81,7 +81,7 @@
           "E"
         ]
       ],
-      "targetWord" : "THEREAT"
+      "targetWord" : "FAUCET"
     },
     {
       "difficulty" : "red",
@@ -122,7 +122,7 @@
           "W"
         ]
       ],
-      "targetWord" : "JEMADAR"
+      "targetWord" : "AIDMAN"
     },
     {
       "difficulty" : "green",
@@ -163,7 +163,7 @@
           "R"
         ]
       ],
-      "targetWord" : "DEICING"
+      "targetWord" : "ATAVIC"
     },
     {
       "difficulty" : "amber",
@@ -204,7 +204,7 @@
           "E"
         ]
       ],
-      "targetWord" : "ADORNER"
+      "targetWord" : "CLINES"
     },
     {
       "difficulty" : "red",
@@ -245,7 +245,7 @@
           "O"
         ]
       ],
-      "targetWord" : "BORACIC"
+      "targetWord" : "BROKER"
     }
   ]
 }

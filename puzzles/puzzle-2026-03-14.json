@@ -5,83 +5,83 @@
       "difficulty" : "green",
       "grid" : [
         [
-          "L",
+          "R",
+          "T",
+          "N",
           "E",
+          "J"
+        ],
+        [
+          "T",
+          "B",
           "O",
-          "P",
-          "D"
+          "Q",
+          "E"
         ],
         [
-          "E",
-          "D",
-          "A",
-          "T",
-          "L"
-        ],
-        [
-          "T",
-          "G",
+          "N",
           "C",
-          "R",
-          "O"
+          "H",
+          "A",
+          "E"
         ],
         [
-          "T",
-          "N",
           "P",
-          "N",
-          "C"
+          "I",
+          "E",
+          "I",
+          "M"
         ],
         [
+          "C",
           "A",
-          "Y",
-          "R",
-          "A",
-          "Q"
+          "F",
+          "I",
+          "O"
         ]
       ],
-      "targetWord" : "ANGELED"
+      "targetWord" : "PAINCH"
     },
     {
       "difficulty" : "amber",
       "grid" : [
         [
+          "K",
+          "T",
+          "W",
+          "T",
+          "N"
+        ],
+        [
+          "R",
           "E",
-          "D",
-          "S",
+          "G",
           "O",
-          "G"
-        ],
-        [
-          "E",
-          "D",
-          "F",
-          "T",
-          "C"
-        ],
-        [
-          "T",
-          "E",
-          "M",
-          "P",
           "S"
         ],
         [
-          "G",
-          "G",
-          "R",
+          "Y",
+          "S",
+          "O",
+          "L",
+          "U"
+        ],
+        [
           "I",
+          "L",
+          "H",
+          "O",
           "I"
         ],
         [
-          "O",
-          "F",
-          "N",
-          "N",
+          "C",
+          "I",
+          "R",
+          "C",
           "V"
         ]
       ],
-      "targetWord" : "DEEMING"
+      "targetWord" : "CHICLY"
     },
     {
       "difficulty" : "red",
@@ -122,7 +122,7 @@
           "A"
         ]
       ],
-      "targetWord" : "MALLOWS"
+      "targetWord" : "ABOMAS"
     },
     {
       "difficulty" : "green",
@@ -163,7 +163,7 @@
           "D"
         ]
       ],
-      "targetWord" : "ADENINE"
+      "targetWord" : "ANOINT"
     },
     {
       "difficulty" : "amber",
@@ -245,7 +245,7 @@
           "V"
         ]
       ],
-      "targetWord" : "BEDLIKE"
+      "targetWord" : "BELIKE"
     }
   ]
 }

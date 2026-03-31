@@ -40,48 +40,48 @@
           "T"
         ]
       ],
-      "targetWord" : "BENEFIT"
+      "targetWord" : "AFREET"
     },
     {
       "difficulty" : "amber",
       "grid" : [
         [
-          "D",
-          "O",
-          "X",
-          "H",
-          "T"
+          "U",
+          "A",
+          "I",
+          "E",
+          "I"
+        ],
+        [
+          "N",
+          "A",
+          "I",
+          "W",
+          "I"
         ],
         [
           "E",
-          "F",
-          "O",
+          "M",
+          "A",
           "E",
           "R"
         ],
         [
-          "D",
-          "I",
-          "L",
-          "I",
-          "N"
-        ],
-        [
+          "S",
           "A",
           "O",
-          "Y",
-          "N",
+          "L",
           "S"
         ],
         [
-          "F",
-          "R",
-          "D",
           "O",
-          "C"
+          "H",
+          "G",
+          "D",
+          "B"
         ]
       ],
-      "targetWord" : "CONDOLE"
+      "targetWord" : "AGLEAM"
     },
     {
       "difficulty" : "red",
@@ -122,7 +122,7 @@
           "E"
         ]
       ],
-      "targetWord" : "DRAINER"
+      "targetWord" : "ALDOLS"
     },
     {
       "difficulty" : "green",
@@ -163,7 +163,7 @@
           "K"
         ]
       ],
-      "targetWord" : "DITHERY"
+      "targetWord" : "BEHEST"
     },
     {
       "difficulty" : "amber",
@@ -204,7 +204,7 @@
           "T"
         ]
       ],
-      "targetWord" : "SEETHED"
+      "targetWord" : "HAILED"
     },
     {
       "difficulty" : "red",
@@ -245,7 +245,7 @@
           "C"
         ]
       ],
-      "targetWord" : "ALBINOS"
+      "targetWord" : "ALBINO"
     }
   ]
 }
